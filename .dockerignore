@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+dist
+.ruff_cache
+*.tsbuildinfo
+*.png
+!public/**/*.png
+.env
+.env.*
+*.pem
+*.key

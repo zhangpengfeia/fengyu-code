@@ -1,0 +1,11 @@
+--- a/deploy/Caddyfile
++++ b/deploy/Caddyfile
+@@ -2,3 +2,8 @@
+     encode zstd gzip
+     reverse_proxy web:8080
+ }
++
++fengyucode.zhangff.cn {
++    encode zstd gzip
++    reverse_proxy fengyucode-web:8080
++}

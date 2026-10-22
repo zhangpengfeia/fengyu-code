@@ -80,3 +80,9 @@ npm run format:check
 uvx ruff format --line-length 100 scripts/trim-assets.py
 xcrun swift-format format --in-place scripts/convert-assets.swift
 ```
+
+## 自动部署到腾讯云
+
+已配置 GitHub Actions：推送 `main` 后检查、构建 Docker 镜像并部署至 `152.136.228.231`，目标地址为 `https://fengyucode.zhangff.cn`。沿用现有「基金agent」项目的 Caddy 网关和 `DEPLOY_*` Secrets 命名。
+
+首次需要配置子域名 DNS、新仓库 Secrets，并将 Caddy 站点片段加入现有网关项目。完整配置、触发方式及回滚步骤见 [部署说明](deploy/README.md)。

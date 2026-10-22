@@ -1,0 +1,22 @@
+name: fengyucode
+
+services:
+  fengyucode-web:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/web:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${HTTP_PORT:-18088}:8080'
+    networks:
+      gateway:
+        aliases: [fengyucode-web]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '--max-time', '4', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  gateway:
+    external: true
+    name: ${GATEWAY_NETWORK:-crm-ai_default}

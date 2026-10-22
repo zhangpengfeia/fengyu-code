@@ -1,0 +1,149 @@
+name: Build and deploy Fengyu Code
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Keep production releases serialized, including manual runs.
+concurrency:
+  group: fengyucode-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run build
+      - name: Check deployment and recovery
+        run: |
+          bash -n deploy/pipeline-deploy.sh
+          IMAGE_PREFIX=ghcr.io/validation/app IMAGE_TAG=validation docker compose -f deploy/compose.yaml config --quiet
+          python3 -m unittest discover -s deploy/tests -v
+
+  build:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set image name
+        id: image
+        run: |
+          prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
+          tag="sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "name=$prefix/web:$tag" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build Linux AMD64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/web.Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ${{ steps.image.outputs.name }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          build-args: |
+            RELEASE_ID=sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          cache-from: type=gha,scope=fengyucode-web
+          cache-to: type=gha,mode=max,scope=fengyucode-web
+      - name: Check image before publishing
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+        run: |
+          docker run --rm "$IMAGE" nginx -t
+          docker run --rm --entrypoint sh "$IMAGE" -c 'test -s /usr/share/nginx/html/index.html && command -v curl'
+      - name: Publish image
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+        run: docker push "$IMAGE"
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+      url: https://fengyucode.zhangff.cn
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Upload release and deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_BASE_DIR: ${{ vars.DEPLOY_BASE_DIR || '/project/fengyucode' }}
+          DEPLOY_NETWORK: ${{ vars.DEPLOY_NETWORK || 'crm-ai_default' }}
+          DEPLOY_HTTP_PORT: ${{ vars.DEPLOY_HTTP_PORT || '18088' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing $name. Configure repository Actions secrets or production environment secrets."
+              exit 1
+            fi
+          done
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]] || exit 2
+          [[ "$DEPLOY_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]] || exit 2
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ ]] || exit 2
+          [[ "$DEPLOY_HTTP_PORT" =~ ^[0-9]+$ ]] || exit 2
+          [[ "$DEPLOY_NETWORK" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || exit 2
+          [[ "$DEPLOY_BASE_DIR" =~ ^/[a-zA-Z0-9_/-]+$ && "$DEPLOY_BASE_DIR" != *..* && "$DEPLOY_BASE_DIR" != / ]] || exit 2
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/fengyucode-ssh.XXXXXX")
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          ssh-keygen -lf "$ssh_dir/known_hosts" >/dev/null
+          lookup_host="$DEPLOY_HOST"
+          if [[ "$DEPLOY_PORT" != 22 ]]; then lookup_host="[$DEPLOY_HOST]:$DEPLOY_PORT"; fi
+          ssh-keygen -F "$lookup_host" -f "$ssh_dir/known_hosts" > "$ssh_dir/matched_hosts"
+          ssh-keygen -lf "$ssh_dir/matched_hosts" >/dev/null
+          ssh_opts=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" \
+            -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=3)
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          tag="sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          prefix="ghcr.io/${GITHUB_REPOSITORY,,}"
+          release_dir="$DEPLOY_BASE_DIR/releases/$tag/deploy"
+          incoming="$DEPLOY_BASE_DIR/.pipeline/incoming/$tag.tar.gz"
+          tar -czf "$RUNNER_TEMP/release.tar.gz" -C deploy compose.yaml pipeline-deploy.sh
+          ssh "${ssh_opts[@]}" -p "$DEPLOY_PORT" "$remote" \
+            "umask 077; mkdir -p '$DEPLOY_BASE_DIR/.pipeline/incoming' '$release_dir'"
+          scp "${ssh_opts[@]}" -P "$DEPLOY_PORT" "$RUNNER_TEMP/release.tar.gz" "$remote:$incoming"
+          ssh "${ssh_opts[@]}" -p "$DEPLOY_PORT" "$remote" \
+            "tar -xzf '$incoming' -C '$release_dir' && rm -f '$incoming' && bash '$release_dir/pipeline-deploy.sh' deploy '$DEPLOY_BASE_DIR' '$prefix' '$tag' '$DEPLOY_NETWORK' '$DEPLOY_HTTP_PORT'"
+          printf '### Deployment complete\n\nhttps://fengyucode.zhangff.cn\n\nRelease: `%s`\n' "$tag" >> "$GITHUB_STEP_SUMMARY"
