@@ -5,9 +5,9 @@ export const SCENE = {
   earth: { left: 280, top: 32, width: 680 },
   // Wide, tilted ellipses follow the reference composition, including off-stage arcs.
   orbits: [
-    { centerX: 600, centerY: 300, radiusX: 520, radiusY: 140, tilt: -16, planetSize: 300 },
-    { centerX: 600, centerY: 300, radiusX: 620, radiusY: 180, tilt: -16, planetSize: 300 },
-    { centerX: 600, centerY: 330, radiusX: 720, radiusY: 220, tilt: -16, planetSize: 300 },
+    { centerX: 600, centerY: 300, radiusX: 469.3, radiusY: 126.35, tilt: -16, planetSize: 300 },
+    { centerX: 600, centerY: 300, radiusX: 559.55, radiusY: 162.45, tilt: -16, planetSize: 300 },
+    { centerX: 600, centerY: 330, radiusX: 649.8, radiusY: 198.55, tilt: -16, planetSize: 300 },
   ],
 } as const
 
