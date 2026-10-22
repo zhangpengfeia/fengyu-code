@@ -62,3 +62,21 @@ swift -module-cache-path /private/tmp/aim-swift-cache scripts/convert-assets.swi
 ## 横竖屏适配
 
 默认采用 16:9 场景并同时受视口宽、高约束；650px 以下竖屏采用 4:5 布局。高度不超过 600px 的横屏使用紧凑控件，确保星球、探索入口和底部导航保持可用。页面使用 `100svh` 避免移动浏览器工具栏展开时遮挡内容，并通过 `viewport-fit=cover` 和 `env(safe-area-inset-*)` 留出安全区。不强制锁定屏幕方向，也不因旋转设备重建组件。
+
+## 代码格式化
+
+前端源码、Less、HTML、JSON 和 Markdown 使用 Prettier：
+
+```sh
+npm run format
+npm run format:check
+```
+
+统一使用 2 空格缩进、单引号、无分号和 100 字符行宽（JSON 使用标准双引号）。依赖目录、构建产物和图片不参与格式化。
+
+素材工具脚本分别使用 Ruff 和 macOS 自带的 swift-format：
+
+```sh
+uvx ruff format --line-length 100 scripts/trim-assets.py
+xcrun swift-format format --in-place scripts/convert-assets.swift
+```

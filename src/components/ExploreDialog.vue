@@ -8,7 +8,9 @@ const dialog = ref<HTMLDialogElement>()
 function open() {
   if (!dialog.value?.open) dialog.value?.showModal()
 }
-function close() { dialog.value?.close() }
+function close() {
+  dialog.value?.close()
+}
 function onBackdropClick(event: MouseEvent) {
   if (event.target === dialog.value) close()
 }
@@ -39,7 +41,9 @@ defineExpose({ open })
 
 .explore-dialog {
   width: min(440px, 90vw);
-  max-height: calc(100svh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  max-height: calc(
+    100svh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+  );
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 32px;
@@ -50,14 +54,35 @@ defineExpose({ open })
   text-align: center;
   box-shadow: 0 30px 100px #020718aa;
 
-  &::backdrop { background: #020a27bb; backdrop-filter: blur(8px); }
-  h2 { font-size: 32px; margin: 8px; }
-  p { font-size: 14px; line-height: 1.8; color: #c1d2f0; }
-  .dialog-eyebrow { font-size: 12px; color: #eff2a2; letter-spacing: .2em; }
-  .demo-note { color: #93a9ce; font-size: 12px; }
+  &::backdrop {
+    background: #020a27bb;
+    backdrop-filter: blur(8px);
+  }
+  h2 {
+    font-size: 32px;
+    margin: 8px;
+  }
+  p {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #c1d2f0;
+  }
+  .dialog-eyebrow {
+    font-size: 12px;
+    color: #eff2a2;
+    letter-spacing: 0.2em;
+  }
+  .demo-note {
+    color: #93a9ce;
+    font-size: 12px;
+  }
 }
 
-.dialog-planet { width: 140px; height: 140px; object-fit: contain; }
+.dialog-planet {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+}
 .close-dialog {
   position: absolute;
   right: 14px;
@@ -79,10 +104,21 @@ defineExpose({ open })
   .explore-dialog {
     width: min(520px, 90vw);
     padding: 16px 24px;
-    h2 { font-size: 24px; margin: 4px; }
-    p { margin: 6px 0; }
+    h2 {
+      font-size: 24px;
+      margin: 4px;
+    }
+    p {
+      margin: 6px 0;
+    }
   }
-  .dialog-planet { width: 72px; height: 72px; }
-  .back-button { margin-top: 8px; padding: 8px 24px; }
+  .dialog-planet {
+    width: 72px;
+    height: 72px;
+  }
+  .back-button {
+    margin-top: 8px;
+    padding: 8px 24px;
+  }
 }
 </style>

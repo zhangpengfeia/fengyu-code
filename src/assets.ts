@@ -6,7 +6,20 @@ export const artwork = {
   profile: '/assets/scene-10.png',
 }
 const numerals = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
-const images = ['planet-9', 'planet-8', 'scene-5', 'planet-4', 'planet-1', 'planet-20', 'planet-0', 'planet-7', 'planet-3', 'planet-5', 'planet-19', 'planet-6']
+const images = [
+  'planet-9',
+  'planet-8',
+  'scene-5',
+  'planet-4',
+  'planet-1',
+  'planet-20',
+  'planet-0',
+  'planet-7',
+  'planet-3',
+  'planet-5',
+  'planet-19',
+  'planet-6',
+]
 export interface Planet {
   id: number
   name: string

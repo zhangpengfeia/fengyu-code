@@ -9,8 +9,7 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
   <button class="explore" @click="$emit('explore')">探索{{ activeName }} <span>›</span></button>
   <footer class="bottom-bar">
     <span class="hint">
-      <span class="mouse-icon">☝</span> 点击星球放大
-      <span class="hint-divider">/</span> ← → 切换
+      <span class="mouse-icon">☝</span> 点击星球放大 <span class="hint-divider">/</span> ← → 切换
     </span>
     <nav aria-label="快捷选择星球">
       <button
@@ -20,7 +19,9 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
         :aria-label="`切换至${planet.name}`"
         :aria-current="selected === planet.id ? 'true' : undefined"
         @click="$emit('select', planet.id)"
-      >{{ String(planet.id).padStart(2, '0') }}</button>
+      >
+        {{ String(planet.id).padStart(2, '0') }}
+      </button>
     </nav>
     <button class="switch-page" @click="$emit('switchPage')"><span>⇄</span>切换星球</button>
   </footer>
@@ -38,15 +39,21 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
   background: linear-gradient(#438d28, #17530b);
   border: 2px solid #fffde8;
   border-radius: 40px;
-  padding: .55cqw 2cqw;
+  padding: 0.55cqw 2cqw;
   font-size: 1.8cqw;
   font-weight: 800;
   white-space: nowrap;
-  box-shadow: 0 3px 0 #12340d, 0 0 16px #c4ff8944;
-  transition: filter .2s;
+  box-shadow:
+    0 3px 0 #12340d,
+    0 0 16px #c4ff8944;
+  transition: filter 0.2s;
 
-  &:hover { filter: brightness(1.2); }
-  span { padding-left: 8px; }
+  &:hover {
+    filter: brightness(1.2);
+  }
+  span {
+    padding-left: 8px;
+  }
 }
 
 .bottom-bar {
@@ -62,18 +69,24 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
 
 .hint {
   color: #aabfdf;
-  font-size: .95cqw;
+  font-size: 0.95cqw;
   display: flex;
   align-items: center;
   gap: 8px;
 
-  .mouse-icon { font-size: 1.4cqw; color: #e1edff; }
-  &-divider { margin: 0 5px; opacity: .4; }
+  .mouse-icon {
+    font-size: 1.4cqw;
+    color: #e1edff;
+  }
+  &-divider {
+    margin: 0 5px;
+    opacity: 0.4;
+  }
 }
 
 nav {
   display: flex;
-  gap: .6cqw;
+  gap: 0.6cqw;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -84,9 +97,13 @@ nav {
     background: #132854;
     color: #a9bfe2;
     font-size: 1cqw;
-    transition: background .25s, color .25s;
+    transition:
+      background 0.25s,
+      color 0.25s;
 
-    &:hover { background: #315384; }
+    &:hover {
+      background: #315384;
+    }
     &.active {
       background: #f4e8a2;
       color: #243451;
@@ -99,29 +116,46 @@ nav {
 .switch-page {
   display: flex;
   align-items: center;
-  gap: .6cqw;
+  gap: 0.6cqw;
   background: transparent;
   font-size: 1cqw;
   color: #dfeaff;
 
-  span { font-size: 3cqw; line-height: 1; }
+  span {
+    font-size: 3cqw;
+    line-height: 1;
+  }
 }
 
 @media @mobile-portrait {
-  .explore { bottom: 14%; font-size: 3.5cqw; padding: 1.5cqw 5cqw; }
-  .bottom-bar { bottom: 4%; height: 6cqw; }
-  .hint { display: none; }
+  .explore {
+    bottom: 14%;
+    font-size: 3.5cqw;
+    padding: 1.5cqw 5cqw;
+  }
+  .bottom-bar {
+    bottom: 4%;
+    height: 6cqw;
+  }
+  .hint {
+    display: none;
+  }
   nav {
     left: 0;
     transform: none;
     gap: 1.5cqw;
 
-    button { .round-control(7cqw); font-size: 2.5cqw; }
+    button {
+      .round-control(7cqw);
+      font-size: 2.5cqw;
+    }
   }
   .switch-page {
     font-size: 2.5cqw;
     margin-left: auto;
-    span { font-size: 7cqw; }
+    span {
+      font-size: 7cqw;
+    }
   }
 }
 
@@ -132,18 +166,28 @@ nav {
     padding: 3px 16px;
     font-size: clamp(13px, 2cqw, 18px);
   }
-  .bottom-bar { bottom: 3.5%; height: 32px; }
-  .hint { display: none; }
+  .bottom-bar {
+    bottom: 3.5%;
+    height: 32px;
+  }
+  .hint {
+    display: none;
+  }
   nav {
     gap: 6px;
 
-    button { .round-control(32px); font-size: 12px; }
+    button {
+      .round-control(32px);
+      font-size: 12px;
+    }
   }
   .switch-page {
     margin-left: auto;
     min-height: 32px;
     font-size: 12px;
-    span { font-size: 28px; }
+    span {
+      font-size: 28px;
+    }
   }
 }
 </style>

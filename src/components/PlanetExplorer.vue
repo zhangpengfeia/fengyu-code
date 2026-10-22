@@ -7,7 +7,19 @@ import ExplorerControls from './ExplorerControls.vue'
 import ExploreDialog from './ExploreDialog.vue'
 import { usePlanetOrbit } from '../composables/usePlanetOrbit'
 
-const { selected, page, playing, angle, visible, active, current, select, switchPage, step, toggleMotion } = usePlanetOrbit()
+const {
+  selected,
+  page,
+  playing,
+  angle,
+  visible,
+  active,
+  current,
+  select,
+  switchPage,
+  step,
+  toggleMotion,
+} = usePlanetOrbit()
 const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
 </script>
 
@@ -27,7 +39,9 @@ const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
       />
     </div>
     <ExploreDialog ref="exploreDialog" :planet="active" />
-    <span class="sr-only" aria-live="polite">当前选择：{{ active.name }}，第 {{ current + 1 }} 颗星球</span>
+    <span class="sr-only" aria-live="polite"
+      >当前选择：{{ active.name }}，第 {{ current + 1 }} 颗星球</span
+    >
   </main>
 </template>
 
@@ -40,7 +54,8 @@ const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
   display: grid;
   place-items: center;
   overflow: clip;
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   background: radial-gradient(ellipse at 50% 45%, #1a3267, #09152f);
 }
 
@@ -56,13 +71,15 @@ const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
 
 @media @mobile-portrait {
   .scene {
-    width: min(100%, calc(var(--scene-height) * .8));
+    width: min(100%, calc(var(--scene-height) * 0.8));
     aspect-ratio: 4 / 5;
   }
 }
 
 // Landscape uses the full available height; no forced screen rotation or page reload.
 @media @mobile-landscape {
-  .universe { width: 100%; }
+  .universe {
+    width: 100%;
+  }
 }
 </style>

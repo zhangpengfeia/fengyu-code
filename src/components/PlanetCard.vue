@@ -28,9 +28,13 @@ defineEmits<{ select: [id: number] }>()
   background: transparent;
   padding: 0;
   will-change: transform, left, top;
-  transition: transform .65s cubic-bezier(.2, .7, .2, 1), filter .3s;
+  transition:
+    transform 0.65s cubic-bezier(0.2, 0.7, 0.2, 1),
+    filter 0.3s;
 
-  &:hover { filter: brightness(1.13); }
+  &:hover {
+    filter: brightness(1.13);
+  }
 
   &-body {
     width: 100%;
@@ -47,16 +51,22 @@ defineEmits<{ select: [id: number] }>()
     background: #a1f4c2;
     filter: blur(25px);
     opacity: 0;
-    transition: opacity .6s;
+    transition: opacity 0.6s;
   }
 
   &.selected {
-    .planet-glow { opacity: .2; }
-    .planet-body { filter: drop-shadow(0 8px 10px #05112d88); }
+    .planet-glow {
+      opacity: 0.2;
+    }
+    .planet-body {
+      filter: drop-shadow(0 8px 10px #05112d88);
+    }
   }
 }
 
 @media @mobile-portrait {
-  .planet { width: 36%; }
+  .planet {
+    width: 36%;
+  }
 }
 </style>

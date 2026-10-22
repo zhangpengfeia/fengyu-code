@@ -16,7 +16,9 @@ defineEmits<{ toggleMotion: [] }>()
       :aria-label="playing ? '暂停动画' : '播放动画'"
       :aria-pressed="!playing"
       @click="$emit('toggleMotion')"
-    >{{ playing ? 'Ⅱ' : '▷' }}</button>
+    >
+      {{ playing ? 'Ⅱ' : '▷' }}
+    </button>
   </div>
   <img class="title-art" :src="artwork.title" alt="AIM趣智 · 数创星球" />
   <p class="subtitle">点击一颗星球，开启你的奇妙探索</p>
@@ -32,7 +34,10 @@ defineEmits<{ toggleMotion: [] }>()
   width: 19%;
   z-index: 40;
 
-  img { width: 100%; display: block; }
+  img {
+    width: 100%;
+    display: block;
+  }
 }
 
 .top-actions {
@@ -48,7 +53,7 @@ defineEmits<{ toggleMotion: [] }>()
 .chapter {
   font-size: 1cqw;
   color: @muted-color;
-  letter-spacing: .12em;
+  letter-spacing: 0.12em;
 }
 
 .motion-button {
@@ -76,7 +81,7 @@ defineEmits<{ toggleMotion: [] }>()
   width: 100%;
   margin: 0;
   text-align: center;
-  letter-spacing: .22em;
+  letter-spacing: 0.22em;
   font-size: 1.1cqw;
   color: #d3e4ff;
   z-index: 38;
@@ -84,18 +89,47 @@ defineEmits<{ toggleMotion: [] }>()
 }
 
 @media @mobile-portrait {
-  .profile { width: 32%; top: 3%; left: 4%; }
-  .top-actions { top: 4%; right: 4%; }
-  .chapter { font-size: 2cqw; }
-  .motion-button { .round-control(7cqw); font-size: 4cqw; }
-  .title-art { width: 80%; left: 10%; top: 19%; }
-  .subtitle { top: 31.5%; font-size: 2.2cqw; }
+  .profile {
+    width: 32%;
+    top: 3%;
+    left: 4%;
+  }
+  .top-actions {
+    top: 4%;
+    right: 4%;
+  }
+  .chapter {
+    font-size: 2cqw;
+  }
+  .motion-button {
+    .round-control(7cqw);
+    font-size: 4cqw;
+  }
+  .title-art {
+    width: 80%;
+    left: 10%;
+    top: 19%;
+  }
+  .subtitle {
+    top: 31.5%;
+    font-size: 2.2cqw;
+  }
 }
 
 @media @mobile-landscape {
-  .top-actions { top: 4%; gap: 8px; }
-  .chapter { font-size: clamp(10px, 1.5cqw, 13px); }
-  .motion-button { .round-control(32px); font-size: 18px; }
-  .subtitle { font-size: clamp(10px, 1.4cqw, 13px); }
+  .top-actions {
+    top: 4%;
+    gap: 8px;
+  }
+  .chapter {
+    font-size: clamp(10px, 1.5cqw, 13px);
+  }
+  .motion-button {
+    .round-control(32px);
+    font-size: 18px;
+  }
+  .subtitle {
+    font-size: clamp(10px, 1.4cqw, 13px);
+  }
 }
 </style>

@@ -13,7 +13,11 @@ const orbitId = useId()
     <i
       v-for="n in 35"
       :key="n"
-      :style="{ left: `${(n * 73.7) % 100}%`, top: `${(n * 41.3) % 100}%`, animationDelay: `${-n * .3}s` }"
+      :style="{
+        left: `${(n * 73.7) % 100}%`,
+        top: `${(n * 41.3) % 100}%`,
+        animationDelay: `${-n * 0.3}s`,
+      }"
     />
   </div>
   <svg class="orbits" viewBox="0 0 1200 675" fill="none" aria-hidden="true">
@@ -41,7 +45,8 @@ const orbitId = useId()
     class="spark"
     :class="[`spark-${index + 1}`, { paused: !playing }]"
     aria-hidden="true"
-  >{{ symbol }}</span>
+    >{{ symbol }}</span
+  >
 </template>
 
 <style scoped lang="less">
@@ -62,7 +67,7 @@ const orbitId = useId()
   left: 20%;
   top: 6.5%;
   z-index: -3;
-  opacity: .85;
+  opacity: 0.85;
 }
 
 .orbits {
@@ -85,7 +90,9 @@ const orbitId = useId()
     animation: twinkle 3s ease-in-out infinite;
   }
 
-  &.paused i { animation-play-state: paused; }
+  &.paused i {
+    animation-play-state: paused;
+  }
 }
 
 .spark {
@@ -95,24 +102,58 @@ const orbitId = useId()
   pointer-events: none;
   animation: twinkle 3s infinite;
 
-  &.paused { animation-play-state: paused; }
-  &-1 { left: 2%; top: 67%; font-size: 4cqw; }
-  &-2 { right: 8%; top: 75%; font-size: 3.5cqw; animation-delay: -1s; }
-  &-3 { left: 17%; top: 31%; font-size: 1.3cqw; }
+  &.paused {
+    animation-play-state: paused;
+  }
+  &-1 {
+    left: 2%;
+    top: 67%;
+    font-size: 4cqw;
+  }
+  &-2 {
+    right: 8%;
+    top: 75%;
+    font-size: 3.5cqw;
+    animation-delay: -1s;
+  }
+  &-3 {
+    left: 17%;
+    top: 31%;
+    font-size: 1.3cqw;
+  }
 }
 
 @keyframes twinkle {
-  0%, 100% { opacity: .35; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @media @mobile-portrait {
-  .earth { width: 100%; height: 75%; left: 0; top: 15%; }
-  .orbits { width: 170%; left: -35%; }
+  .earth {
+    width: 100%;
+    height: 75%;
+    left: 0;
+    top: 15%;
+  }
+  .orbits {
+    width: 170%;
+    left: -35%;
+  }
   .spark {
-    &-1 { font-size: 7cqw; }
-    &-2 { font-size: 6cqw; }
-    &-3 { font-size: 4cqw; }
+    &-1 {
+      font-size: 7cqw;
+    }
+    &-2 {
+      font-size: 6cqw;
+    }
+    &-3 {
+      font-size: 4cqw;
+    }
   }
 }
 </style>

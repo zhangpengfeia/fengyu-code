@@ -12,9 +12,11 @@ export function usePlanetOrbit() {
   const playing = ref(true)
   const focused = ref(false)
   const angle = ref(-2 * ANGLE_STEP)
-  const visible = computed(() => planets.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE))
-  const active = computed(() => planets.find(planet => planet.id === selected.value)!)
-  const current = computed(() => visible.value.findIndex(planet => planet.id === selected.value))
+  const visible = computed(() =>
+    planets.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE),
+  )
+  const active = computed(() => planets.find((planet) => planet.id === selected.value)!)
+  const current = computed(() => visible.value.findIndex((planet) => planet.id === selected.value))
 
   let targetAngle = angle.value
   let media: MediaQueryList | undefined
@@ -22,14 +24,15 @@ export function usePlanetOrbit() {
   let previous = 0
 
   function select(id: number) {
-    const planetIndex = planets.findIndex(planet => planet.id === id)
+    const planetIndex = planets.findIndex((planet) => planet.id === id)
     if (planetIndex === -1) return
 
     page.value = Math.floor(planetIndex / PAGE_SIZE)
     selected.value = id
     const desired = -(planetIndex % PAGE_SIZE) * ANGLE_STEP
     // Always move along the shorter arc, including when crossing between pages.
-    targetAngle = angle.value + Math.atan2(Math.sin(desired - angle.value), Math.cos(desired - angle.value))
+    targetAngle =
+      angle.value + Math.atan2(Math.sin(desired - angle.value), Math.cos(desired - angle.value))
     focused.value = true
     if (media?.matches) angle.value = targetAngle
   }
@@ -40,7 +43,7 @@ export function usePlanetOrbit() {
   }
 
   function step(direction: number) {
-    select((selected.value - 1 + direction + planets.length) % planets.length + 1)
+    select(((selected.value - 1 + direction + planets.length) % planets.length) + 1)
   }
 
   function toggleMotion() {
@@ -79,5 +82,17 @@ export function usePlanetOrbit() {
     media?.removeEventListener('change', onMotionChange)
   })
 
-  return { selected, page, playing, angle, visible, active, current, select, switchPage, step, toggleMotion }
+  return {
+    selected,
+    page,
+    playing,
+    angle,
+    visible,
+    active,
+    current,
+    select,
+    switchPage,
+    step,
+    toggleMotion,
+  }
 }

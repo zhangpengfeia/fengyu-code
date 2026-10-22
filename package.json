@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "vue": "^3.5.22"
@@ -14,6 +16,7 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.4",
     "less": "^4.9.1",
+    "prettier": "^3.9.10",
     "typescript": "~5.8.3",
     "vite": "^6.1.0",
     "vue-tsc": "^2.2.12"
