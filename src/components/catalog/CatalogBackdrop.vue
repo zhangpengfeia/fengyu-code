@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { BookDefinition } from '../../config/books'
-import OrbitTracks from '../OrbitTracks.vue'
+import OrbitTracks from '../scene/OrbitTracks.vue'
 defineProps<{ book: BookDefinition }>()
 </script>
 

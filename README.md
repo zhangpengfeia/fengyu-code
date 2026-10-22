@@ -28,27 +28,49 @@ npm run preview
 
 ## 文件
 
-- `src/App.vue`：仅作为应用入口，挂载 `PlanetExperience`。
-- `src/components/PlanetExperience.vue`：星球目录与册数游戏目录的导航，支持浏览器返回和 `#book/3` 直达链接。
-- `src/components/LandscapeStage.vue`：共用 16:9 舞台、移动端强制横屏和安全区适配。
-- `src/components/PlanetExplorer.vue`：组合场景组件，连接状态与事件，控制横竖屏场景比例。
-- `src/components/SceneBackdrop.vue`：固定地球、背景、星光和轨道装饰。
-- `src/components/ExplorerHeader.vue`：用户信息、标题和 12 册目录说明。
-- `src/components/PlanetOrbit.vue`：12 颗星球的轨道布局、纵深和中央放大。
-- `src/components/PlanetGrid.vue`：全部 12 册的 6 列 × 2 行网格展示。
-- `src/components/OrbitTracks.vue`：与星球位置共用几何计算的前后两层轨道线。
-- `src/config/scene.ts`：1200 × 675 设计坐标、地球尺寸、三条轨道及各轨道星球尺寸、十二颗星球的轨道分配和路径生成。
-- `src/components/PlanetCard.vue`：单颗星球展示与选择。
-- `src/components/ExplorerControls.vue`：探索入口、12 册导航和展示类型切换。
-- `src/components/books/Book01.vue` 至 `Book12.vue`：12 册独立组件入口。
-- `src/components/catalog/`：共用游戏目录、背景、游戏卡片与模式切换组件。
+页面放在 `src/views/`，页面私有组件放在自己的 `components/`，跨页面复用组件放在 `src/components/`。
+
+```text
+src/
+├── App.vue                       # 仅挂载页面导航入口
+├── views/
+│   ├── PlanetExperience.vue       # 首页/星球目录导航及浏览器返回
+│   ├── home/
+│   │   ├── index.vue              # 12 颗星球首页
+│   │   └── components/            # 首页头部、控件、星球、轨道/网格布局
+│   └── planets/
+│       ├── index.ts               # 注册 12 个星球页面
+│       ├── planet01/
+│       │   ├── index.vue          # 第一册游戏目录
+│       │   ├── components/        # 第一册专用组件（预留）
+│       │   └── games/
+│       │       ├── index.ts       # 第一册的 8 个游戏入口注册表
+│       │       ├── game01/
+│       │       │   ├── index.vue  # 第一册游戏 1 入口（预留）
+│       │       │   └── components/# 该游戏专用组件（预留）
+│       │       ├── ...
+│       │       └── game08/
+│       ├── ...
+│       └── planet12/              # 同样包含专属组件及 games/game01—08
+├── components/
+│   ├── scene/                    # 共用横屏舞台、加载提示、轨道线
+│   ├── catalog/                  # 12 册共用目录、背景、卡片、模式切换
+│   └── game/                     # 游戏页面共用占位界面
+├── composables/                   # 轨道动画、图片下载/解码与生命周期
+├── config/                        # 星球几何参数、册数及游戏数据
+├── types/                         # 游戏页面的公共参数类型
+├── assets/                        # 优化后的 WebP
+├── assets.ts                      # 素材映射与 Planet 类型
+└── styles/                        # 全局 Less、变量与横竖屏断点
+```
+
+- `src/config/scene.ts`：1200 × 675 设计坐标、固定地球、三条轨道及十二颗星球的分配和路径。
 - `src/config/books.ts`：12 册主题与各自的 8 个游戏配置。
-- `src/composables/usePlanetOrbit.ts`：轨道动画、12 册选中状态和生命周期清理。
-- `src/assets.ts`：素材映射与 `Planet` 类型。
-- `src/styles/global.less`：全局基础样式和减少动画偏好。
-- `src/styles/variables.less`：Less 变量、mixin 和横竖屏断点；组件使用 scoped Less 管理各自样式。
+- `src/composables/usePlanetOrbit.ts`：自动公转、选中星球移动到中央后放大、生命周期清理。
 - `public/assets/manifest.json`：PNG 与原 PDF 的对应关系。
 - `scripts/convert-assets.swift`：macOS CoreGraphics 转换脚本，保留透明背景，不修改原始 PDF。
+
+页面私有组件只在所属页面中引用；复用组件通过 props 和事件通信，不依赖 `src/views/`。预留目录中的 `.gitkeep` 用于保留空目录，添加实际组件后可删除。
 
 重新转换素材（macOS）：
 
@@ -75,11 +97,11 @@ swift -module-cache-path /private/tmp/aim-swift-cache scripts/convert-assets.swi
 python3 scripts/optimize-assets.py
 ```
 
-素材输出为 `src/assets/optimized/`。加载流程见 `src/composables/useSceneAssets.ts`，加载界面见 `src/components/SceneLoading.vue`。
+素材输出为 `src/assets/optimized/`。加载流程见 `src/composables/useSceneAssets.ts`，加载界面见 `src/components/scene/SceneLoading.vue`。
 
 ## 12 册游戏目录
 
-每册有独立入口组件 `src/components/books/Book01.vue` 至 `Book12.vue`，通过 `books/index.ts` 注册。共用 `BookGameCatalog.vue` 展示 8 个可选游戏、前后切换、训练／测评模式和网格视图。首页保留在内存中，进入游戏目录时停止首页动画，返回后继续。
+每册有独立入口 `src/views/planets/planet01/index.vue` 至 `planet12/index.vue`，通过 `src/views/planets/index.ts` 注册。每册专属组件放在同目录的 `components/`，共用 `src/components/catalog/BookGameCatalog.vue` 展示 8 个可选游戏、前后切换、训练／测评模式和网格视图。首页保留在内存中，进入游戏目录时停止首页动画，返回后继续。
 
 第三册和第五册使用提供的森林／水果 PDF 切图，还原无文字的大星球、环境装饰和绿色／金色游戏卡片。其余十册先复用首页对应星球作为背景，并显示 8 个游戏占位卡片，后续可单独修改对应册组件与数据。
 
@@ -92,6 +114,14 @@ books[2]!.games[0]!.entries = {
   assessment: '/games/book-03/game-01?mode=assessment',
 }
 ```
+
+### 游戏页面扩展
+
+每个星球拥有自己的 `games/game01/` 至 `games/game08/`，共 96 个独立入口。例如第一册游戏 1 为 `src/views/planets/planet01/games/game01/index.vue`，第五册游戏 1 为 `src/views/planets/planet05/games/game01/index.vue`。各册的 `games/index.ts` 导出自己的异步组件注册表 `gameViews`。
+
+每个游戏入口已经绑定所属册和游戏位置，接收 `mode`（训练/测评），触发 `back` 返回事件。目前共用 `src/components/game/GamePlaceholder.vue`，尚未接入页面导航；现有目录点击开始仍显示“内容正在准备中”，配置 `entries` URL 后仍跳转外部游戏。
+
+开发真实游戏时，在对应星球的 `games/gameXX/index.vue` 中替换占位组件，将游戏专属界面放入其 `components/`，再接入导航。同一星球多个游戏共用的专属组件可放在该星球的 `components/`；跨星球或跨游戏复用的组件放到 `src/components/`。这些预留入口尚未包含实际游戏逻辑。
 
 新增切图置于 `src/assets/catalog/` 后更新对应配置。已生成 WebP 会随工程打包，部署不依赖原 PDF。原素材映射见 `public/assets/catalog-manifest.json`。重新转换需要 Pillow 和 pypdfium2：
 

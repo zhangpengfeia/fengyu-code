@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import PlanetExperience from './components/PlanetExperience.vue'
+import PlanetExperience from './views/PlanetExperience.vue'
 </script>
 
 <template>
