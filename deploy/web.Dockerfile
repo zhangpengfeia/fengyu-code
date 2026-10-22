@@ -1,7 +1,7 @@
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
+COPY package.json package-lock.json .npmrc ./
+RUN npm ci --prefer-offline --no-audit --no-fund --foreground-scripts --loglevel=info
 COPY index.html tsconfig.json vite.config.ts ./
 COPY src/ ./src/
 COPY public/ ./public/
