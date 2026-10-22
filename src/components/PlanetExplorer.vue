@@ -7,19 +7,8 @@ import ExplorerControls from './ExplorerControls.vue'
 import ExploreDialog from './ExploreDialog.vue'
 import { usePlanetOrbit } from '../composables/usePlanetOrbit'
 
-const {
-  selected,
-  page,
-  playing,
-  angle,
-  visible,
-  active,
-  current,
-  select,
-  switchPage,
-  step,
-  toggleMotion,
-} = usePlanetOrbit()
+const { selected, page, angle, visible, active, current, select, switchPage, step } =
+  usePlanetOrbit()
 const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
 </script>
 
@@ -27,8 +16,8 @@ const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
   <main class="universe" @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
     <div class="landscape-viewport">
       <div class="scene">
-        <SceneBackdrop :playing="playing" />
-        <ExplorerHeader :page="page" :playing="playing" @toggle-motion="toggleMotion" />
+        <SceneBackdrop />
+        <ExplorerHeader :page="page" />
         <PlanetOrbit :planets="visible" :selected="selected" :angle="angle" @select="select" />
         <ExplorerControls
           :planets="visible"

@@ -2,8 +2,6 @@
 import { artwork } from '../assets'
 import { SCENE } from '../config/scene'
 import OrbitTracks from './OrbitTracks.vue'
-
-defineProps<{ playing: boolean }>()
 </script>
 
 <template>
@@ -18,7 +16,7 @@ defineProps<{ playing: boolean }>()
     }"
     alt=""
   />
-  <div class="star-field" :class="{ paused: !playing }" aria-hidden="true">
+  <div class="star-field" aria-hidden="true">
     <i
       v-for="n in 35"
       :key="n"
@@ -34,7 +32,7 @@ defineProps<{ playing: boolean }>()
     v-for="(symbol, index) in ['✦', '★', '✦']"
     :key="index"
     class="spark"
-    :class="[`spark-${index + 1}`, { paused: !playing }]"
+    :class="`spark-${index + 1}`"
     aria-hidden="true"
     >{{ symbol }}</span
   >
@@ -67,10 +65,6 @@ defineProps<{ playing: boolean }>()
     background: #fff28c;
     animation: twinkle 3s ease-in-out infinite;
   }
-
-  &.paused i {
-    animation-play-state: paused;
-  }
 }
 
 .spark {
@@ -80,9 +74,6 @@ defineProps<{ playing: boolean }>()
   pointer-events: none;
   animation: twinkle 3s infinite;
 
-  &.paused {
-    animation-play-state: paused;
-  }
   &-1 {
     left: 2%;
     top: 67%;

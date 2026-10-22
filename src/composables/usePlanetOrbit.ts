@@ -9,8 +9,7 @@ const ORBIT_SPEED = 0.045
 export function usePlanetOrbit() {
   const selected = ref(3)
   const page = ref(0)
-  const playing = ref(true)
-  const focused = ref(false)
+  let focusing = false
   const angle = ref(-2 * ANGLE_STEP)
   const visible = computed(() =>
     planets.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE),
@@ -33,7 +32,7 @@ export function usePlanetOrbit() {
     // Always move along the shorter arc, including when crossing between pages.
     targetAngle =
       angle.value + Math.atan2(Math.sin(desired - angle.value), Math.cos(desired - angle.value))
-    focused.value = true
+    focusing = true
     if (media?.matches) angle.value = targetAngle
   }
 
@@ -46,27 +45,27 @@ export function usePlanetOrbit() {
     select(((selected.value - 1 + direction + planets.length) % planets.length) + 1)
   }
 
-  function toggleMotion() {
-    playing.value = !playing.value
-    if (playing.value) focused.value = false
-  }
-
   function animate(now: number) {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0
     previous = now
 
-    if (focused.value && Math.abs(targetAngle - angle.value) > 0.0001) {
-      angle.value += (targetAngle - angle.value) * (1 - Math.exp(-delta * 5))
-    } else if (!focused.value && playing.value && !media?.matches) {
-      angle.value += delta * ORBIT_SPEED
+    if (!media?.matches) {
+      if (focusing) {
+        angle.value += (targetAngle - angle.value) * (1 - Math.exp(-delta * 5))
+        if (Math.abs(targetAngle - angle.value) < 0.001) {
+          angle.value = targetAngle
+          focusing = false
+        }
+      } else {
+        angle.value += delta * ORBIT_SPEED
+      }
     }
     frame = requestAnimationFrame(animate)
   }
 
   function onMotionChange() {
     if (media?.matches) {
-      playing.value = false
-      if (focused.value) angle.value = targetAngle
+      if (focusing) angle.value = targetAngle
     }
   }
 
@@ -85,7 +84,6 @@ export function usePlanetOrbit() {
   return {
     selected,
     page,
-    playing,
     angle,
     visible,
     active,
@@ -93,6 +91,5 @@ export function usePlanetOrbit() {
     select,
     switchPage,
     step,
-    toggleMotion,
   }
 }

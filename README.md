@@ -19,8 +19,8 @@ npm run preview
 ## 交互
 
 - 背景地球固定，册数星球沿椭圆轨道缓慢公转，根据轨道深度改变大小和前后遮挡。
-- 点击星球或底部册数按钮：平滑移动到前景并放大；轨道停留在选中位置，方便继续操作。
-- 点击右上角暂停/播放按钮：暂停动画，或重新开始公转。
+- 点击星球或底部册数按钮：平滑移动到前景并放大；聚焦完成后自动继续公转。
+- 星球默认自动公转，无需播放或暂停操作。
 - 左右方向键切换前后册；右下角按钮切换 1–6 册、7–12 册。
 - “探索第 X 册”打开对应册数的演示弹窗，后续可接入课程目录。当前未接入实际课程。
 - 手机始终使用横向场景；竖屏打开时画面旋转 90°，横持时正常显示，保留选中状态并适配刘海安全区。
@@ -31,7 +31,7 @@ npm run preview
 - `src/App.vue`：仅作为应用入口，挂载 `PlanetExplorer`。
 - `src/components/PlanetExplorer.vue`：组合场景组件，连接状态与事件，控制横竖屏场景比例。
 - `src/components/SceneBackdrop.vue`：固定地球、背景、星光和轨道装饰。
-- `src/components/ExplorerHeader.vue`：用户信息、标题和播放/暂停按钮。
+- `src/components/ExplorerHeader.vue`：用户信息、标题和目录页码。
 - `src/components/PlanetOrbit.vue`：轨道布局、纵深缩放和遮挡。
 - `src/components/OrbitTracks.vue`：与星球位置共用几何计算的前后两层轨道线。
 - `src/config/scene.ts`：1200 × 675 设计坐标、地球与星球尺寸、倾斜椭圆和路径生成。

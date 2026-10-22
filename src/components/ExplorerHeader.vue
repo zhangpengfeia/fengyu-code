@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { artwork } from '../assets'
 
-defineProps<{ page: number; playing: boolean }>()
-defineEmits<{ toggleMotion: [] }>()
+defineProps<{ page: number }>()
 </script>
 
 <template>
@@ -11,14 +10,6 @@ defineEmits<{ toggleMotion: [] }>()
   </header>
   <div class="top-actions">
     <span class="chapter">星球目录 · {{ page === 0 ? '01 — 06' : '07 — 12' }}</span>
-    <button
-      class="motion-button"
-      :aria-label="playing ? '暂停动画' : '播放动画'"
-      :aria-pressed="!playing"
-      @click="$emit('toggleMotion')"
-    >
-      {{ playing ? 'Ⅱ' : '▷' }}
-    </button>
   </div>
   <img class="title-art" :src="artwork.title" alt="AIM趣智 · 数创星球" />
   <p class="subtitle">点击一颗星球，开启你的奇妙探索</p>
@@ -56,17 +47,6 @@ defineEmits<{ toggleMotion: [] }>()
   letter-spacing: 0.12em;
 }
 
-.motion-button {
-  .round-control(3cqw);
-  min-width: 28px;
-  min-height: 28px;
-  border: 1px solid #ffffff38;
-  background: #183469a6;
-  font-size: 1.5cqw;
-  display: grid;
-  place-items: center;
-}
-
 .title-art {
   position: absolute;
   top: 23%;
@@ -95,10 +75,6 @@ defineEmits<{ toggleMotion: [] }>()
   }
   .chapter {
     display: none;
-  }
-  .motion-button {
-    .round-control(32px);
-    font-size: 18px;
   }
   .subtitle {
     font-size: clamp(10px, 1.4cqw, 13px);
