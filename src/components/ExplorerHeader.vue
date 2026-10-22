@@ -88,41 +88,13 @@ defineEmits<{ toggleMotion: [] }>()
   text-shadow: 0 2px 6px #14254d;
 }
 
-@media @mobile-portrait {
-  .profile {
-    width: 32%;
-    top: 3%;
-    left: 4%;
-  }
-  .top-actions {
-    top: 4%;
-    right: 4%;
-  }
-  .chapter {
-    font-size: 2cqw;
-  }
-  .motion-button {
-    .round-control(7cqw);
-    font-size: 4cqw;
-  }
-  .title-art {
-    width: 80%;
-    left: 10%;
-    top: 19%;
-  }
-  .subtitle {
-    top: 31.5%;
-    font-size: 2.2cqw;
-  }
-}
-
-@media @mobile-landscape {
+@media @compact-scene {
   .top-actions {
     top: 4%;
     gap: 8px;
   }
   .chapter {
-    font-size: clamp(10px, 1.5cqw, 13px);
+    display: none;
   }
   .motion-button {
     .round-control(32px);

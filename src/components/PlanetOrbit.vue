@@ -2,18 +2,20 @@
 import type { CSSProperties } from 'vue'
 import type { Planet } from '../assets'
 import PlanetCard from './PlanetCard.vue'
+import { SCENE, orbitPoint } from '../config/scene'
 
 const props = defineProps<{ planets: Planet[]; selected: number; angle: number }>()
 defineEmits<{ select: [id: number] }>()
 
 function styleFor(index: number, id: number): CSSProperties {
   const theta = (index * Math.PI) / 3 + props.angle
-  const depth = (Math.cos(theta) + 1) / 2
-  const scale = 0.47 + depth * 0.36 + (id === props.selected ? 0.36 : 0)
+  const point = orbitPoint(theta)
+  const scale = 0.5 + point.depth * 0.3 + (id === props.selected ? 0.52 : 0)
   return {
-    left: `${50 + Math.sin(theta) * 40}%`,
-    top: `${48 + Math.cos(theta) * 22}%`,
-    zIndex: depth < 0.12 ? -4 : Math.round(depth * 30) + 3,
+    left: `${(point.x / SCENE.width) * 100}%`,
+    top: `${(point.y / SCENE.height) * 100}%`,
+    width: `${(SCENE.planetSize / SCENE.width) * 100}%`,
+    zIndex: point.behindEarth ? -4 : Math.round(point.depth * 30) + 3,
     transform: `translate(-50%, -50%) scale(${scale})`,
   }
 }
@@ -37,11 +39,5 @@ function styleFor(index: number, id: number): CSSProperties {
 
 .planet-system {
   .absolute-fill();
-}
-
-@media @mobile-portrait {
-  .planet-system {
-    inset: 13% 4% 10%;
-  }
 }
 </style>

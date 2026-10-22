@@ -127,39 +127,7 @@ nav {
   }
 }
 
-@media @mobile-portrait {
-  .explore {
-    bottom: 14%;
-    font-size: 3.5cqw;
-    padding: 1.5cqw 5cqw;
-  }
-  .bottom-bar {
-    bottom: 4%;
-    height: 6cqw;
-  }
-  .hint {
-    display: none;
-  }
-  nav {
-    left: 0;
-    transform: none;
-    gap: 1.5cqw;
-
-    button {
-      .round-control(7cqw);
-      font-size: 2.5cqw;
-    }
-  }
-  .switch-page {
-    font-size: 2.5cqw;
-    margin-left: auto;
-    span {
-      font-size: 7cqw;
-    }
-  }
-}
-
-@media @mobile-landscape {
+@media @compact-scene {
   .explore {
     bottom: 14%;
     min-height: 32px;

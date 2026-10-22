@@ -1,14 +1,23 @@
 <script setup lang="ts">
-import { useId } from 'vue'
 import { artwork } from '../assets'
+import { SCENE } from '../config/scene'
+import OrbitTracks from './OrbitTracks.vue'
 
 defineProps<{ playing: boolean }>()
-const orbitId = useId()
 </script>
 
 <template>
   <img class="background-art" :src="artwork.background" alt="" />
-  <img class="earth" :src="artwork.earth" alt="" />
+  <img
+    class="earth"
+    :src="artwork.earth"
+    :style="{
+      left: `${(SCENE.earth.left / SCENE.width) * 100}%`,
+      top: `${(SCENE.earth.top / SCENE.height) * 100}%`,
+      width: `${(SCENE.earth.width / SCENE.width) * 100}%`,
+    }"
+    alt=""
+  />
   <div class="star-field" :class="{ paused: !playing }" aria-hidden="true">
     <i
       v-for="n in 35"
@@ -20,25 +29,7 @@ const orbitId = useId()
       }"
     />
   </div>
-  <svg class="orbits" viewBox="0 0 1200 675" fill="none" aria-hidden="true">
-    <defs>
-      <linearGradient :id="orbitId">
-        <stop stop-color="#44c6cc" />
-        <stop offset=".5" stop-color="#b5df71" />
-        <stop offset="1" stop-color="#8d7cff" />
-      </linearGradient>
-    </defs>
-    <g transform="rotate(-17 600 360)" :stroke="`url(#${orbitId})`" stroke-width="3" opacity=".75">
-      <ellipse cx="600" cy="360" rx="665" ry="225" />
-      <ellipse cx="600" cy="360" rx="565" ry="168" />
-      <ellipse cx="600" cy="360" rx="455" ry="112" />
-    </g>
-    <g fill="#d5f2ff">
-      <circle cx="340" cy="622" r="11" />
-      <circle cx="815" cy="335" r="10" />
-      <circle cx="1115" cy="380" r="11" />
-    </g>
-  </svg>
+  <OrbitTracks />
   <span
     v-for="(symbol, index) in ['✦', '★', '✦']"
     :key="index"
@@ -56,31 +47,18 @@ const orbitId = useId()
   .absolute-fill();
   width: 100%;
   height: 100%;
-  z-index: -5;
+  z-index: -6;
 }
 
 .earth {
   position: absolute;
-  width: 61%;
-  height: 106%;
-  object-fit: contain;
-  left: 20%;
-  top: 6.5%;
+  height: auto;
   z-index: -3;
-  opacity: 0.85;
-}
-
-.orbits {
-  .absolute-fill();
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
 }
 
 .star-field {
   .absolute-fill();
-  z-index: -2;
+  z-index: -5;
   pointer-events: none;
 
   i {
@@ -130,30 +108,6 @@ const orbitId = useId()
   }
   50% {
     opacity: 1;
-  }
-}
-
-@media @mobile-portrait {
-  .earth {
-    width: 100%;
-    height: 75%;
-    left: 0;
-    top: 15%;
-  }
-  .orbits {
-    width: 170%;
-    left: -35%;
-  }
-  .spark {
-    &-1 {
-      font-size: 7cqw;
-    }
-    &-2 {
-      font-size: 6cqw;
-    }
-    &-3 {
-      font-size: 4cqw;
-    }
   }
 }
 </style>

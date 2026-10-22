@@ -100,7 +100,7 @@ defineExpose({ open })
   font-weight: 700;
 }
 
-@media @mobile-landscape {
+@media @compact-scene {
   .explore-dialog {
     width: min(520px, 90vw);
     padding: 16px 24px;
@@ -119,6 +119,20 @@ defineExpose({ open })
   .back-button {
     margin-top: 8px;
     padding: 8px 24px;
+  }
+}
+// Native modal dialogs live in the top layer and need their own rotation.
+@media @mobile-portrait {
+  .explore-dialog {
+    position: fixed;
+    inset: auto;
+    left: calc(env(safe-area-inset-left, 0px) + var(--available-width) / 2);
+    top: calc(env(safe-area-inset-top, 0px) + var(--available-height) / 2);
+    margin: 0;
+    width: min(520px, calc(var(--available-height) - 24px));
+    max-width: none;
+    max-height: calc(var(--available-width) - 24px);
+    transform: translate(-50%, -50%) rotate(90deg);
   }
 }
 </style>

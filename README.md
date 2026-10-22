@@ -23,7 +23,7 @@ npm run preview
 - 点击右上角暂停/播放按钮：暂停动画，或重新开始公转。
 - 左右方向键切换前后册；右下角按钮切换 1–6 册、7–12 册。
 - “探索第 X 册”打开对应册数的演示弹窗，后续可接入课程目录。当前未接入实际课程。
-- 支持手机横屏与竖屏；旋转设备时自动调整布局并保留选中状态，适配刘海安全区。
+- 手机始终使用横向场景；竖屏打开时画面旋转 90°，横持时正常显示，保留选中状态并适配刘海安全区。
 - 支持键盘操作和系统减少动态效果偏好。
 
 ## 文件
@@ -33,6 +33,8 @@ npm run preview
 - `src/components/SceneBackdrop.vue`：固定地球、背景、星光和轨道装饰。
 - `src/components/ExplorerHeader.vue`：用户信息、标题和播放/暂停按钮。
 - `src/components/PlanetOrbit.vue`：轨道布局、纵深缩放和遮挡。
+- `src/components/OrbitTracks.vue`：与星球位置共用几何计算的前后两层轨道线。
+- `src/config/scene.ts`：1200 × 675 设计坐标、地球与星球尺寸、倾斜椭圆和路径生成。
 - `src/components/PlanetCard.vue`：单颗星球展示与选择。
 - `src/components/ExplorerControls.vue`：探索入口、册数导航和分页。
 - `src/components/ExploreDialog.vue`：探索弹窗，横屏时压缩布局并支持内部滚动。
@@ -55,13 +57,15 @@ swift -module-cache-path /private/tmp/aim-swift-cache scripts/convert-assets.swi
 
 ## 动画参数
 
-`PlanetOrbit.vue` 中 `styleFor()` 控制轨道半径、纵深及放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。
+`src/config/scene.ts` 统一地球大小、星球基准尺寸、轨道中心、半径和倾角；轨道 SVG 与 `PlanetOrbit.vue` 通过同一个 `orbitPoint()` 函数定位，`styleFor()` 控制纵深及选中放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。
 
 原切图已包含册数文字，因此采用图案保持正向的轨道公转，避免旋转整张图片导致文字倒置。若需球体纹理自转，可替换为不含文字的球体素材并单独叠加册数标签。
 
 ## 横竖屏适配
 
-默认采用 16:9 场景并同时受视口宽、高约束；650px 以下竖屏采用 4:5 布局。高度不超过 600px 的横屏使用紧凑控件，确保星球、探索入口和底部导航保持可用。页面使用 `100svh` 避免移动浏览器工具栏展开时遮挡内容，并通过 `viewport-fit=cover` 和 `env(safe-area-inset-*)` 留出安全区。不强制锁定屏幕方向，也不因旋转设备重建组件。
+场景始终使用 16:9 横向布局，并同时受可用宽、高约束。650px 以下的手机竖屏视口中，`landscape-viewport` 交换可用宽高并旋转 90°，即使微信等内置浏览器锁定竖屏也能呈现横向场景；物理视口转横后自动恢复正常方向。触控由浏览器按 CSS 变换后的实际位置处理，切换方向时不重建组件。
+
+手机紧凑控件同时应用于旋转的竖屏和低高度横屏。原生 `<dialog>` 位于浏览器顶层，单独同步旋转，避免弹窗方向与场景不一致。使用动态视口高度 `100dvh`（回退 `100svh`）及 `env(safe-area-inset-*)` 适配浏览器工具栏和刘海安全区。此方案旋转网页内容，不依赖浏览器的屏幕方向锁定 API。
 
 ## 代码格式化
 

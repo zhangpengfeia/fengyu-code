@@ -14,7 +14,13 @@ defineEmits<{ select: [id: number] }>()
     @click="$emit('select', planet.id)"
   >
     <span class="planet-glow" />
-    <img class="planet-body" :src="planet.image" alt="" draggable="false" />
+    <img
+      class="planet-body"
+      :src="planet.image"
+      :style="{ transform: `scale(${planet.visualScale})` }"
+      alt=""
+      draggable="false"
+    />
   </button>
 </template>
 
@@ -23,7 +29,6 @@ defineEmits<{ select: [id: number] }>()
 
 .planet {
   position: absolute;
-  width: 26%;
   aspect-ratio: 1;
   background: transparent;
   padding: 0;
@@ -61,12 +66,6 @@ defineEmits<{ select: [id: number] }>()
     .planet-body {
       filter: drop-shadow(0 8px 10px #05112d88);
     }
-  }
-}
-
-@media @mobile-portrait {
-  .planet {
-    width: 36%;
   }
 }
 </style>

@@ -25,10 +25,13 @@ export interface Planet {
   id: number
   name: string
   image: string
+  visualScale: number
 }
 
 export const planets: Planet[] = numerals.map((numeral, index) => ({
   id: index + 1,
   name: `第${numeral}册`,
   image: `/assets/${images[index]}.png`,
+  // The forest slice includes a wide baked glow; normalize its visible globe diameter.
+  visualScale: index === 2 ? 1.18 : 1,
 }))
