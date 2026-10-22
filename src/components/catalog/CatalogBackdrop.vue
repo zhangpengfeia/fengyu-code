@@ -5,14 +5,6 @@ defineProps<{ book: BookDefinition }>()
 </script>
 
 <template>
-  <div class="catalog-sky" />
-  <img
-    v-if="book.landscape"
-    class="catalog-landscape"
-    :src="book.landscape"
-    alt=""
-    decoding="async"
-  />
   <img
     class="catalog-planet"
     :src="book.planetImage"
@@ -34,20 +26,6 @@ defineProps<{ book: BookDefinition }>()
 </template>
 
 <style scoped lang="less">
-.catalog-sky {
-  position: absolute;
-  inset: 0;
-  z-index: -6;
-  background: var(--book-background);
-}
-.catalog-landscape {
-  position: absolute;
-  width: 100%;
-  left: 0;
-  bottom: 0;
-  opacity: 0.38;
-  z-index: -5;
-}
 .catalog-planet {
   position: absolute;
   left: 16%;

@@ -6,6 +6,7 @@ import { loadGroup } from '../../composables/useSceneAssets'
 import LandscapeStage from '../scene/LandscapeStage.vue'
 import SceneLoading from '../scene/SceneLoading.vue'
 import CatalogBackdrop from './CatalogBackdrop.vue'
+import CatalogEnvironment from './CatalogEnvironment.vue'
 import GameCard from './GameCard.vue'
 import GameModeSwitch from './GameModeSwitch.vue'
 
@@ -99,6 +100,9 @@ onBeforeUnmount(() => {
     @keydown.right.prevent="step(1)"
     @keydown.esc="emit('back')"
   >
+    <template v-if="ready" #background>
+      <CatalogEnvironment :book="book" />
+    </template>
     <template v-if="ready">
       <CatalogBackdrop :book="book" />
       <img class="catalog-profile" :src="artwork.profile" alt="杨同学，大师" />
@@ -145,6 +149,7 @@ onBeforeUnmount(() => {
 
 <style scoped lang="less">
 .book-catalog {
+  --scene-background: transparent;
   background: var(--book-background);
 }
 .catalog-profile {

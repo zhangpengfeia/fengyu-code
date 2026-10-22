@@ -1,6 +1,7 @@
 <template>
   <main class="universe">
     <div class="landscape-viewport">
+      <div v-if="$slots.background" class="stage-backdrop"><slot name="background" /></div>
       <div class="scene"><slot /></div>
     </div>
     <slot name="overlay" />
@@ -40,6 +41,12 @@
   place-items: center;
 }
 
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
 .scene {
   width: min(100%, calc(var(--landscape-height) * 1.777778));
   aspect-ratio: 16 / 9;
@@ -47,7 +54,7 @@
   overflow: clip;
   isolation: isolate;
   container-type: inline-size;
-  background: @scene-background;
+  background: var(--scene-background, @scene-background);
 }
 
 // Rotate the content, so landscape also works in portrait-locked mobile WebViews.

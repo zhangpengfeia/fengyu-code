@@ -2,7 +2,7 @@
 import { computed, type CSSProperties } from 'vue'
 import type { Planet } from '../../../assets'
 import PlanetCard from './PlanetCard.vue'
-import { SCENE, planetPosition, planetScale, planetOpacity } from '../../../config/scene'
+import { SCENE, planetPosition, planetScale } from '../../../config/scene'
 
 const props = defineProps<{ planets: Planet[]; selected: number; angle: number }>()
 defineEmits<{ select: [id: number] }>()
@@ -11,15 +11,13 @@ const orbitPlanets = computed(() =>
   props.planets.map((planet, index) => {
     const point = planetPosition(index, props.angle)
     const scale = planetScale(point.depth, planet.id === props.selected)
-    const opacity = planetOpacity(point.depth)
-    const visible = opacity > 0.00001
-    const interactive = opacity > 0.1
+    const visible = scale > 0.00001
+    const interactive = scale > 0.1
     const style: CSSProperties = {
       left: `${(point.x / SCENE.width) * 100}%`,
       top: `${(point.y / SCENE.height) * 100}%`,
       width: `${(point.size / SCENE.width) * 100}%`,
       zIndex: Math.round(point.depth * 30) + 1,
-      opacity,
       visibility: visible ? 'visible' : 'hidden',
       pointerEvents: interactive ? 'auto' : 'none',
       transform: `translate(-50%, -50%) scale(${scale})`,
@@ -51,5 +49,10 @@ const orbitPlanets = computed(() =>
 
 .planet-system {
   .absolute-fill();
+
+  // RAF already interpolates position and scale; a CSS transform transition would lag behind.
+  :deep(.planet) {
+    transition: filter 0.3s;
+  }
 }
 </style>

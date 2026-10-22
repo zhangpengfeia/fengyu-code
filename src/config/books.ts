@@ -28,7 +28,7 @@ export const catalogBackIcon = slice('back')
 const colors = [
   ['#54231b', '#ffb188', '#ff7954'],
   ['#111e58', '#a8bdff', '#6c92ff'],
-  ['#183e17', '#dcff85', '#70c84e'],
+  ['#00572d', '#dcff85', '#70c84e'],
   ['#4e3210', '#ffe09a', '#ffc151'],
   ['#5e3307', '#ffec86', '#f0a32e'],
   ['#451e17', '#ffc29f', '#df6939'],
