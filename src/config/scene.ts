@@ -68,3 +68,9 @@ export function planetScale(depth: number, selected: boolean) {
   const center = Math.max(0, depth * 2 - 1) ** 8
   return 0.42 + depth * 0.26 + center * (selected ? 0.72 : 0.2)
 }
+
+/** Only the front half is visible: two planets per track, six across all three. */
+export function planetOpacity(depth: number) {
+  const progress = Math.min(1, Math.max(0, (depth - 0.5) / 0.16))
+  return progress * progress * (3 - 2 * progress)
+}
