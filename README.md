@@ -18,7 +18,7 @@ npm run preview
 
 ## 交互
 
-- 背景地球固定，册数星球沿椭圆轨道缓慢公转，根据轨道深度改变大小和前后遮挡。
+- 背景地球固定，册数星球分布在三条倾斜椭圆轨道上缓慢公转，每条轨道两颗星球，根据轨道深度改变大小和前后遮挡。
 - 点击星球或底部册数按钮：平滑移动到前景并放大；聚焦完成后自动继续公转。
 - 星球默认自动公转，无需播放或暂停操作。
 - 左右方向键切换前后册；右下角按钮切换 1–6 册、7–12 册。
@@ -34,7 +34,7 @@ npm run preview
 - `src/components/ExplorerHeader.vue`：用户信息、标题和目录页码。
 - `src/components/PlanetOrbit.vue`：轨道布局、纵深缩放和遮挡。
 - `src/components/OrbitTracks.vue`：与星球位置共用几何计算的前后两层轨道线。
-- `src/config/scene.ts`：1200 × 675 设计坐标、地球与星球尺寸、倾斜椭圆和路径生成。
+- `src/config/scene.ts`：1200 × 675 设计坐标、地球尺寸、三条轨道及各轨道星球尺寸、六颗星球的轨道分配和路径生成。
 - `src/components/PlanetCard.vue`：单颗星球展示与选择。
 - `src/components/ExplorerControls.vue`：探索入口、册数导航和分页。
 - `src/components/ExploreDialog.vue`：探索弹窗，横屏时压缩布局并支持内部滚动。
@@ -74,7 +74,7 @@ python3 scripts/optimize-assets.py
 
 ## 动画参数
 
-`src/config/scene.ts` 统一地球大小、星球基准尺寸、轨道中心、半径和倾角；轨道 SVG 与 `PlanetOrbit.vue` 通过同一个 `orbitPoint()` 函数定位，`styleFor()` 控制纵深及选中放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。
+`src/config/scene.ts` 统一地球大小、三条轨道的星球尺寸、中心、半径和倾角；`PLANET_SLOTS` 将每组六颗星球分到三条轨道，每条两颗。轨道 SVG 与 `PlanetOrbit.vue` 共用 `orbitPoint()` 几何计算，`planetPosition()` 按星球槽位选择对应轨道，`styleFor()` 控制纵深及选中放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。
 
 原切图已包含册数文字，因此采用图案保持正向的轨道公转，避免旋转整张图片导致文字倒置。若需球体纹理自转，可替换为不含文字的球体素材并单独叠加册数标签。
 

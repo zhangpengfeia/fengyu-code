@@ -8,9 +8,9 @@ const layers = [
   { name: 'front', start: -Math.PI / 2, end: Math.PI / 2 },
 ].map((layer) => ({
   ...layer,
-  paths: [1.18, 1, 0.82].map((scale) => orbitArc(layer.start, layer.end, scale)),
+  paths: SCENE.orbits.map((_, track) => orbitArc(layer.start, layer.end, track)),
 }))
-const markers = [-1.25, 0.7].map((angle) => orbitPoint(angle))
+const markers = [-0.85, 0.65, -0.6].map((angle, track) => orbitPoint(angle, track))
 </script>
 
 <template>
@@ -42,8 +42,8 @@ const markers = [-1.25, 0.7].map((angle) => orbitPoint(angle))
       :key="index"
       :d="path"
       :stroke="`url(#${id}-${layer.name})`"
-      :stroke-width="index === 1 ? 3 : 2"
-      :opacity="index === 1 ? 0.9 : 0.45"
+      :stroke-width="2.5"
+      :opacity="layer.name === 'front' ? 0.85 : 0.45"
     />
     <template v-if="layer.name === 'front'">
       <circle

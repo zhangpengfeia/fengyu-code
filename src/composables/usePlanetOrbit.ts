@@ -1,8 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import { planets } from '../assets'
+import { PLANET_SLOTS } from '../config/scene'
 
 const PAGE_SIZE = 6
-const ANGLE_STEP = (Math.PI * 2) / PAGE_SIZE
 const ORBIT_SPEED = 0.045
 
 /** Owns selection, paging and animation; UI components only receive state/events. */
@@ -10,7 +10,7 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
   const selected = ref(3)
   const page = ref(0)
   let focusing = false
-  const angle = ref(-2 * ANGLE_STEP)
+  const angle = ref(0)
   const visible = computed(() =>
     planets.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE),
   )
@@ -28,7 +28,7 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
 
     page.value = Math.floor(planetIndex / PAGE_SIZE)
     selected.value = id
-    const desired = -(planetIndex % PAGE_SIZE) * ANGLE_STEP
+    const desired = -PLANET_SLOTS[planetIndex % PAGE_SIZE]!.phase
     // Always move along the shorter arc, including when crossing between pages.
     targetAngle =
       angle.value + Math.atan2(Math.sin(desired - angle.value), Math.cos(desired - angle.value))
