@@ -31,6 +31,10 @@ class DeploymentTests(unittest.TestCase):
             "curl",
             """
 [[ "${FAIL_CURL:-0}" != 1 ]] || exit 1
+if [[ "$*" == *"https://"* && "${FAIL_HTTPS:-0}" == 1 ]]; then
+  echo 'TLS handshake failed' >&2
+  exit 35
+fi
 if [[ "$*" == *"https://"* && "${WRONG_PUBLIC_RELEASE:-0}" == 1 ]]; then
   echo wrong-release
 elif [[ "$*" == *"__release.txt"* ]]; then
@@ -134,6 +138,14 @@ exit 0
         self.assertIn("http://127.0.0.1:18088/__release.txt", calls)
         self.assertIn("https://fengyucode.zhangff.cn/__release.txt", calls)
         self.assertIn("--project-name fengyucode down", calls)
+
+    def test_tls_failure_reports_the_cause_before_cleanup(self):
+        result = self.run_deploy(self.release(1), FAIL_HTTPS="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Container version verified", result.stdout)
+        self.assertIn("Caddy HTTPS request failed: TLS handshake failed", result.stderr)
+        self.assertIn("Publish the fengyucode site block", result.stderr)
+        self.assertFalse((self.base / "current").exists())
 
     def test_manual_rollback_swaps_current_and_previous(self):
         old, new = self.release(1), self.release(2)

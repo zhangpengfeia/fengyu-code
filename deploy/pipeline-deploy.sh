@@ -26,19 +26,38 @@ check_site() {
   local directory=$1 port expected response attempt
   port=$(sed -n 's/^HTTP_PORT=//p' "$directory/.env")
   expected=$(sed -n 's/^IMAGE_TAG=//p' "$directory/.env")
-  [[ "$port" =~ ^[0-9]+$ ]] || return 1
-  curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/healthz" >/dev/null || return 1
-  response=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/__release.txt") || return 1
-  [[ "$response" == "$expected" ]] || return 1
+  [[ "$port" =~ ^[0-9]+$ ]] || { echo 'Invalid health-check HTTP_PORT' >&2; return 1; }
+  echo "Checking container at 127.0.0.1:$port"
+  if ! curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/healthz" >/dev/null; then
+    echo 'Container HTTP health check failed' >&2
+    return 1
+  fi
+  if ! response=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/__release.txt"); then
+    echo 'Could not read the container release marker' >&2
+    return 1
+  fi
+  if [[ "$response" != "$expected" ]]; then
+    printf 'Container release mismatch: expected=%s received=%.160s\n' "$expected" "$response" >&2
+    return 1
+  fi
+  echo "Container version verified: $expected"
   # Verify the real Caddy route, certificate, and image version as well as the container.
   for attempt in {1..12}; do
+    echo "Checking Caddy HTTPS route ($attempt/12): fengyucode.zhangff.cn"
     if response=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 \
       --resolve fengyucode.zhangff.cn:443:127.0.0.1 \
-      https://fengyucode.zhangff.cn/__release.txt 2>/dev/null) && [[ "$response" == "$expected" ]]; then
-      return 0
+      https://fengyucode.zhangff.cn/__release.txt 2>&1); then
+      if [[ "$response" == "$expected" ]]; then
+        echo 'Caddy HTTPS route and release version verified'
+        return 0
+      fi
+      printf 'Caddy release mismatch: expected=%s received=%.160s\n' "$expected" "$response" >&2
+    else
+      printf 'Caddy HTTPS request failed: %.300s\n' "$response" >&2
     fi
-    sleep 5
+    if [[ "$attempt" != 12 ]]; then sleep 5; fi
   done
+  echo 'Caddy HTTPS verification failed. Publish the fengyucode site block in the gateway project and check its certificate and Docker network.' >&2
   return 1
 }
 

@@ -33,7 +33,7 @@ fengyucode.zhangff.cn {
 }
 ```
 
-已根据你提供的原文件生成 `deploy/crm-ai-caddy.patch`。也可以在本机应用补丁，先检查再修改原项目：
+已根据你提供的原文件生成 `deploy/crm-ai-caddy.patch`。若原 Caddyfile 尚未包含该站点，也可以在本机应用补丁，先检查再修改原项目；已有该站点块时无需重复应用：
 
 ```sh
 git -C '/Users/a123/D盘/学习/project/基金agent' apply --check '/Users/a123/D盘/学习/project/code-ai/deploy/crm-ai-caddy.patch'
@@ -101,7 +101,7 @@ PR 只运行验证，不访问部署凭据，也不发布镜像。手动触发�
 
 构建任务通过 job outputs 将实际发布的镜像标签传给部署任务。只重新运行失败的部署任务时，继续使用原构建标签，避免 `GITHUB_RUN_ATTEMPT` 增加后拉取不存在的镜像。修改流水线后需推送新提交触发新运行；重新运行旧记录仍使用旧版流水线。
 
-当前尚未替你推送 Git 提交、配置 GitHub Secrets、修改 DNS 或修改原项目的 Caddyfile；这些凭据与入口准备完成后，推送 `main` 即会触发部署。
+DNS、GitHub Secrets 与现有 Caddy 入口均准备完成后，推送本仓库的 `main` 即会触发部署。
 
 ## 5. 排查与手动回滚
 
