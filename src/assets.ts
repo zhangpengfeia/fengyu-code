@@ -1,4 +1,5 @@
-/** PNGs rendered from the supplied PDF slices. See public/assets/manifest.json for sources. */
+/** 1 PNGs rendered from the supplied PDF slices. See public/assets/manifest.json for sources. */
+
 export const artwork = {
   background: '/assets/scene-1.png',
   earth: '/assets/scene-14.png',
