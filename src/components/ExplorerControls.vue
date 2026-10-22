@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { Planet } from '../assets'
 
-defineProps<{ planets: Planet[]; selected: number; activeName: string }>()
-defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
+defineProps<{
+  planets: Planet[]
+  selected: number
+  activeName: string
+  displayType: 'orbit' | 'grid'
+}>()
+defineEmits<{ select: [id: number]; toggleDisplay: []; explore: [] }>()
 </script>
 
 <template>
@@ -23,7 +28,15 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
         {{ String(planet.id).padStart(2, '0') }}
       </button>
     </nav>
-    <button class="switch-page" @click="$emit('switchPage')"><span>⇄</span>切换星球</button>
+    <button
+      class="switch-display"
+      aria-label="切换类型展示"
+      :aria-pressed="displayType === 'grid'"
+      :title="displayType === 'orbit' ? '切换为网格展示' : '切换为轨道展示'"
+      @click="$emit('toggleDisplay')"
+    >
+      <span aria-hidden="true">⇄</span>切换类型展示
+    </button>
   </footer>
 </template>
 
@@ -61,9 +74,10 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
   bottom: 2.5%;
   left: 3%;
   right: 3%;
-  display: flex;
+  display: grid;
+  grid-template-columns: 24% minmax(0, 1fr) 20%;
+  gap: 0.5cqw;
   align-items: center;
-  justify-content: space-between;
   z-index: 40;
 }
 
@@ -86,13 +100,12 @@ defineEmits<{ select: [id: number]; switchPage: []; explore: [] }>()
 
 nav {
   display: flex;
-  gap: 0.6cqw;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  gap: 0.35cqw;
+  justify-content: center;
 
   button {
-    .round-control(2.7cqw);
+    .round-control(2.65cqw);
+    flex-shrink: 0;
     border: 1px solid #718ec04d;
     background: #132854;
     color: #a9bfe2;
@@ -113,13 +126,15 @@ nav {
   }
 }
 
-.switch-page {
+.switch-display {
   display: flex;
+  justify-self: end;
   align-items: center;
   gap: 0.6cqw;
   background: transparent;
   font-size: 1cqw;
   color: #dfeaff;
+  white-space: nowrap;
 
   span {
     font-size: 3cqw;
@@ -136,25 +151,27 @@ nav {
   }
   .bottom-bar {
     bottom: 3.5%;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1cqw;
     height: 32px;
   }
   .hint {
     display: none;
   }
   nav {
-    gap: 6px;
+    gap: 0.4cqw;
 
     button {
-      .round-control(32px);
-      font-size: 12px;
+      .round-control(clamp(18px, 2.8cqw, 28px));
+      font-size: clamp(9px, 1.25cqw, 12px);
     }
   }
-  .switch-page {
-    margin-left: auto;
+  .switch-display {
     min-height: 32px;
-    font-size: 12px;
+    gap: 0.4cqw;
+    font-size: clamp(10px, 1.4cqw, 12px);
     span {
-      font-size: 28px;
+      font-size: clamp(21px, 3cqw, 28px);
     }
   }
 }

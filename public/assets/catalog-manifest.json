@@ -1,0 +1,44 @@
+[
+  {
+    "file": "book-03-planet.webp",
+    "source": "第三册森林2/蒙版分组.bitmap.pdf",
+    "width": 1440,
+    "height": 1290
+  },
+  {
+    "file": "book-03-landscape.webp",
+    "source": "第三册森林2/分组 10.bitmap.pdf",
+    "width": 1440,
+    "height": 716
+  },
+  {
+    "file": "book-03-game.webp",
+    "source": "第三册森林2/分组 18.bitmap.pdf",
+    "width": 800,
+    "height": 523
+  },
+  {
+    "file": "book-05-planet.webp",
+    "source": "第五册水果2/蒙版分组.bitmap.pdf",
+    "width": 1440,
+    "height": 1440
+  },
+  {
+    "file": "book-05-landscape.webp",
+    "source": "第五册水果2/分组 11.bitmap.pdf",
+    "width": 1440,
+    "height": 589
+  },
+  {
+    "file": "book-05-game.webp",
+    "source": "第五册水果2/分组 1.bitmap.pdf",
+    "width": 800,
+    "height": 523
+  },
+  {
+    "file": "back.webp",
+    "source": "第三册森林2/分组 14.bitmap.pdf",
+    "width": 128,
+    "height": 128
+  }
+]

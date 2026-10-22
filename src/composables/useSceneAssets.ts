@@ -1,7 +1,7 @@
-import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { artwork, planets } from '../assets'
 
-// Keep decoded images alive across page changes; failed requests can be retried.
+// Keep decoded images alive across views; failed requests can be retried.
 const decoded = new Map<string, Promise<HTMLImageElement>>()
 
 function decodeImage(url: string, priority: 'high' | 'low') {
@@ -32,7 +32,7 @@ function decodeImage(url: string, priority: 'high' | 'low') {
   return promise
 }
 
-async function loadGroup(urls: string[], priority: 'high' | 'low', onLoaded = () => {}) {
+export async function loadGroup(urls: string[], priority: 'high' | 'low', onLoaded = () => {}) {
   const queue = [...urls]
   // Bound network/decode concurrency rather than starting every image at once.
   await Promise.all(
@@ -45,12 +45,12 @@ async function loadGroup(urls: string[], priority: 'high' | 'low', onLoaded = ()
   )
 }
 
-export function useSceneAssets(page: Ref<number>) {
+export function useSceneAssets() {
   const loading = ref(true)
   const error = ref(false)
   const completed = ref(0)
-  const total = ref(10)
-  const progress = computed(() => Math.round((completed.value / total.value) * 100))
+  const total = Object.keys(artwork).length + planets.length
+  const progress = computed(() => Math.round((completed.value / total) * 100))
   const ready = computed(() => !loading.value && !error.value)
   let generation = 0
 
@@ -59,20 +59,13 @@ export function useSceneAssets(page: Ref<number>) {
     loading.value = true
     error.value = false
     completed.value = 0
-    const pageImages = planets.slice(page.value * 6, page.value * 6 + 6).map((p) => p.image)
-    const urls = [...Object.values(artwork), ...pageImages]
-    total.value = urls.length
+    const urls = [...Object.values(artwork), ...planets.map((p) => p.image)]
     try {
       await loadGroup(urls, 'high', () => {
         if (request === generation) completed.value++
       })
       if (request !== generation) return
       loading.value = false
-      // Prefetch only after the visible scene is ready. Errors retry on navigation.
-      void loadGroup(
-        planets.filter((p) => !pageImages.includes(p.image)).map((p) => p.image),
-        'low',
-      ).catch(() => {})
     } catch {
       if (request !== generation) return
       loading.value = false
@@ -80,7 +73,7 @@ export function useSceneAssets(page: Ref<number>) {
     }
   }
 
-  onMounted(() => watch(page, load, { immediate: true, flush: 'sync' }))
+  onMounted(load)
   onBeforeUnmount(() => generation++)
   return { loading, error, progress, ready, retry: load }
 }

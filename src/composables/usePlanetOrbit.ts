@@ -2,20 +2,16 @@ import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import { planets } from '../assets'
 import { PLANET_SLOTS } from '../config/scene'
 
-const PAGE_SIZE = 6
 const ORBIT_SPEED = 0.045
 
-/** Owns selection, paging and animation; UI components only receive state/events. */
-export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
-  const selected = ref(3)
-  const page = ref(0)
+/** Owns selection and animation for all twelve planets. */
+export function usePlanetOrbit(animationEnabled: Ref<boolean>, initialBook = 3) {
+  const selected = ref(initialBook)
   let focusing = false
-  const angle = ref(0)
-  const visible = computed(() =>
-    planets.slice(page.value * PAGE_SIZE, (page.value + 1) * PAGE_SIZE),
-  )
+  const angle = ref(-PLANET_SLOTS[initialBook - 1]!.phase)
+  const visible = planets
   const active = computed(() => planets.find((planet) => planet.id === selected.value)!)
-  const current = computed(() => visible.value.findIndex((planet) => planet.id === selected.value))
+  const current = computed(() => visible.findIndex((planet) => planet.id === selected.value))
 
   let targetAngle = angle.value
   let media: MediaQueryList | undefined
@@ -26,19 +22,13 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
     const planetIndex = planets.findIndex((planet) => planet.id === id)
     if (planetIndex === -1) return
 
-    page.value = Math.floor(planetIndex / PAGE_SIZE)
     selected.value = id
-    const desired = -PLANET_SLOTS[planetIndex % PAGE_SIZE]!.phase
-    // Always move along the shorter arc, including when crossing between pages.
+    const desired = -PLANET_SLOTS[planetIndex]!.phase
+    // Always take the shorter arc, including the last-to-first book transition.
     targetAngle =
       angle.value + Math.atan2(Math.sin(desired - angle.value), Math.cos(desired - angle.value))
     focusing = true
     if (media?.matches) angle.value = targetAngle
-  }
-
-  function switchPage() {
-    const nextPage = (page.value + 1) % Math.ceil(planets.length / PAGE_SIZE)
-    select(nextPage * PAGE_SIZE + 3)
   }
 
   function step(direction: number) {
@@ -83,13 +73,11 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
 
   return {
     selected,
-    page,
     angle,
     visible,
     active,
     current,
     select,
-    switchPage,
     step,
   }
 }

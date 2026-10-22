@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import PlanetExplorer from './components/PlanetExplorer.vue'
+import PlanetExperience from './components/PlanetExperience.vue'
 </script>
 
 <template>
-  <PlanetExplorer />
+  <PlanetExperience />
 </template>

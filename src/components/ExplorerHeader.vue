@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { artwork } from '../assets'
 
-defineProps<{ page: number }>()
+defineProps<{ displayType: 'orbit' | 'grid' }>()
 </script>
 
 <template>
@@ -9,10 +9,16 @@ defineProps<{ page: number }>()
     <img :src="artwork.profile" alt="杨同学，大师" />
   </header>
   <div class="top-actions">
-    <span class="chapter">星球目录 · {{ page === 0 ? '01 — 06' : '07 — 12' }}</span>
+    <span class="chapter">星球目录 · 01 — 12</span>
   </div>
-  <img decoding="async" class="title-art" :src="artwork.title" alt="AIM趣智 · 数创星球" />
-  <p class="subtitle">点击一颗星球，开启你的奇妙探索</p>
+  <img
+    decoding="async"
+    class="title-art"
+    :class="{ 'grid-title': displayType === 'grid' }"
+    :src="artwork.title"
+    alt="AIM趣智 · 数创星球"
+  />
+  <p v-if="displayType === 'orbit'" class="subtitle">点击一颗星球，开启你的奇妙探索</p>
 </template>
 
 <style scoped lang="less">
@@ -68,6 +74,12 @@ defineProps<{ page: number }>()
   text-shadow: 0 2px 6px #14254d;
 }
 
+.grid-title {
+  top: 8%;
+  left: 29%;
+  width: 42%;
+}
+
 @media @compact-scene {
   .top-actions {
     top: 4%;
@@ -78,6 +90,11 @@ defineProps<{ page: number }>()
   }
   .subtitle {
     font-size: clamp(10px, 1.4cqw, 13px);
+  }
+  .grid-title {
+    top: 6%;
+    left: 26%;
+    width: 48%;
   }
 }
 </style>

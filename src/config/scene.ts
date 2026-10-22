@@ -5,20 +5,20 @@ export const SCENE = {
   earth: { left: 280, top: 32, width: 680 },
   // Wide, tilted ellipses follow the reference composition, including off-stage arcs.
   orbits: [
-    { centerX: 600, centerY: 300, radiusX: 445.835, radiusY: 120.0325, tilt: -16, planetSize: 270 },
+    { centerX: 600, centerY: 300, radiusX: 445.835, radiusY: 120.0325, tilt: -16, planetSize: 190 },
     {
       centerX: 600,
       centerY: 300,
       radiusX: 531.5725,
       radiusY: 154.3275,
       tilt: -16,
-      planetSize: 270,
+      planetSize: 190,
     },
-    { centerX: 600, centerY: 330, radiusX: 617.31, radiusY: 188.6225, tilt: -16, planetSize: 270 },
+    { centerX: 600, centerY: 330, radiusX: 617.31, radiusY: 188.6225, tilt: -16, planetSize: 190 },
   ],
 } as const
 
-// Each page has two planets on each track, separated by half a revolution.
+// All twelve books share one scene: four evenly spaced planets on each track.
 export const PLANET_SLOTS = [
   { track: 0, phase: -1.15 },
   { track: 0, phase: Math.PI - 1.15 },
@@ -26,6 +26,12 @@ export const PLANET_SLOTS = [
   { track: 1, phase: Math.PI },
   { track: 2, phase: 0.55 },
   { track: 2, phase: Math.PI + 0.55 },
+  { track: 0, phase: Math.PI / 2 - 1.15 },
+  { track: 0, phase: Math.PI * 1.5 - 1.15 },
+  { track: 1, phase: Math.PI / 2 },
+  { track: 1, phase: Math.PI * 1.5 },
+  { track: 2, phase: Math.PI / 2 + 0.55 },
+  { track: 2, phase: Math.PI * 1.5 + 0.55 },
 ] as const
 
 export function orbitPoint(angle: number, track = 0) {
@@ -55,4 +61,10 @@ export function orbitArc(start: number, end: number, track = 0) {
     const point = orbitPoint(start + ((end - start) * index) / 144, track)
     return `${index === 0 ? 'M' : 'L'}${point.x.toFixed(3)},${point.y.toFixed(3)}`
   }).join(' ')
+}
+
+/** Enlarge near the front center; selecting a distant planet does not enlarge it there. */
+export function planetScale(depth: number, selected: boolean) {
+  const center = Math.max(0, depth * 2 - 1) ** 8
+  return 0.42 + depth * 0.26 + center * (selected ? 0.72 : 0.2)
 }

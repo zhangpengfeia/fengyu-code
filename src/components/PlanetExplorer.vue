@@ -3,101 +3,58 @@ import { ref, watchEffect } from 'vue'
 import SceneBackdrop from './SceneBackdrop.vue'
 import ExplorerHeader from './ExplorerHeader.vue'
 import PlanetOrbit from './PlanetOrbit.vue'
+import PlanetGrid from './PlanetGrid.vue'
 import ExplorerControls from './ExplorerControls.vue'
-import ExploreDialog from './ExploreDialog.vue'
+import LandscapeStage from './LandscapeStage.vue'
 import { usePlanetOrbit } from '../composables/usePlanetOrbit'
 import { useSceneAssets } from '../composables/useSceneAssets'
 import SceneLoading from './SceneLoading.vue'
 
-const animationEnabled = ref(false)
-const { selected, page, angle, visible, active, current, select, switchPage, step } =
-  usePlanetOrbit(animationEnabled)
-const { ready, error, progress, retry } = useSceneAssets(page)
-watchEffect(() => {
-  animationEnabled.value = ready.value
+const props = withDefaults(defineProps<{ active?: boolean; initialBook?: number }>(), {
+  active: true,
+  initialBook: 3,
 })
-const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
+const emit = defineEmits<{ enter: [bookId: number] }>()
+const animationEnabled = ref(false)
+const displayType = ref<'orbit' | 'grid'>('orbit')
+const { selected, angle, visible, active, current, select, step } = usePlanetOrbit(
+  animationEnabled,
+  props.initialBook,
+)
+const { ready, error, progress, retry } = useSceneAssets()
+watchEffect(() => {
+  animationEnabled.value = ready.value && props.active && displayType.value === 'orbit'
+})
 </script>
 
 <template>
-  <main class="universe" @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
-    <div class="landscape-viewport">
-      <div class="scene">
-        <template v-if="ready">
-          <SceneBackdrop />
-          <ExplorerHeader :page="page" />
-          <PlanetOrbit :planets="visible" :selected="selected" :angle="angle" @select="select" />
-          <ExplorerControls
-            :planets="visible"
-            :selected="selected"
-            :active-name="active.name"
-            @select="select"
-            @switch-page="switchPage"
-            @explore="exploreDialog?.open()"
-          />
-        </template>
-        <SceneLoading v-else :progress="progress" :error="error" @retry="retry" />
-      </div>
-    </div>
-    <ExploreDialog ref="exploreDialog" :planet="active" />
-    <span class="sr-only" aria-live="polite"
-      >当前选择：{{ active.name }}，第 {{ current + 1 }} 颗星球</span
-    >
-  </main>
+  <LandscapeStage @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
+    <template v-if="ready">
+      <SceneBackdrop />
+      <ExplorerHeader :display-type="displayType" />
+      <PlanetOrbit
+        v-if="displayType === 'orbit'"
+        :planets="visible"
+        :selected="selected"
+        :angle="angle"
+        @select="select"
+      />
+      <PlanetGrid v-else :planets="visible" :selected="selected" @select="select" />
+      <ExplorerControls
+        :planets="visible"
+        :selected="selected"
+        :active-name="active.name"
+        :display-type="displayType"
+        @select="select"
+        @toggle-display="displayType = displayType === 'orbit' ? 'grid' : 'orbit'"
+        @explore="emit('enter', active.id)"
+      />
+    </template>
+    <SceneLoading v-else :progress="progress" :error="error" @retry="retry" />
+    <template #overlay>
+      <span class="sr-only" aria-live="polite"
+        >当前选择：{{ active.name }}，第 {{ current + 1 }} 颗星球</span
+      >
+    </template>
+  </LandscapeStage>
 </template>
-
-<style scoped lang="less">
-@import (reference) '../styles/variables.less';
-
-.universe {
-  --viewport-height: 100svh;
-  --available-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-  --available-height: calc(
-    var(--viewport-height) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
-  );
-  position: relative;
-  width: 100%;
-  height: var(--viewport-height);
-  overflow: clip;
-  background: radial-gradient(ellipse at 50% 45%, #1a3267, #09152f);
-}
-
-@supports (height: 100dvh) {
-  .universe {
-    --viewport-height: 100dvh;
-  }
-}
-
-.landscape-viewport {
-  --landscape-height: var(--available-height);
-  position: absolute;
-  left: env(safe-area-inset-left, 0px);
-  top: env(safe-area-inset-top, 0px);
-  width: var(--available-width);
-  height: var(--available-height);
-  display: grid;
-  place-items: center;
-}
-
-.scene {
-  width: min(100%, calc(var(--landscape-height) * 1.777778));
-  aspect-ratio: 16 / 9;
-  position: relative;
-  overflow: clip;
-  isolation: isolate;
-  container-type: inline-size;
-  background: @scene-background;
-}
-
-// Rotate the content, so landscape also works in portrait-locked mobile WebViews.
-@media @mobile-portrait {
-  .landscape-viewport {
-    --landscape-height: var(--available-width);
-    left: calc(env(safe-area-inset-left, 0px) + var(--available-width) / 2);
-    top: calc(env(safe-area-inset-top, 0px) + var(--available-height) / 2);
-    width: var(--available-height);
-    height: var(--available-width);
-    transform: translate(-50%, -50%) rotate(90deg);
-  }
-}
-</style>
