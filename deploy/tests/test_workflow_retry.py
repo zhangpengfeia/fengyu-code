@@ -1,4 +1,4 @@
-"""Run the workflow's shell steps with fake SSH to check failed-job retries.1"""
+"""Run the workflow's shell steps with fake SSH to check failed-job retries."""
 
 import os
 from pathlib import Path
