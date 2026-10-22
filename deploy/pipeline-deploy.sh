@@ -73,6 +73,7 @@ if [[ "$mode" == deploy ]]; then
     "$prefix" "$tag" "$network" "$port" > "$new_dir/.env"
   compose "$new_dir" config --quiet
   # Pull must succeed before changing any running container.
+  echo "Pulling image: $prefix/web:$tag"
   compose "$new_dir" pull fengyucode-web
 else
   [[ -n "$old_dir" && -L "$base_dir/previous" ]] || {

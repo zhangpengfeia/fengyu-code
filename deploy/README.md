@@ -99,6 +99,8 @@ awk '{print "152.136.228.231 " $1 " " $2}' /etc/ssh/ssh_host_ed25519_key.pub
 
 PR 只运行验证，不访问部署凭据，也不发布镜像。手动触发：仓库 **Actions → Build and deploy Fengyu Code → Run workflow**，选择 `main`。
 
+构建任务通过 job outputs 将实际发布的镜像标签传给部署任务。只重新运行失败的部署任务时，继续使用原构建标签，避免 `GITHUB_RUN_ATTEMPT` 增加后拉取不存在的镜像。修改流水线后需推送新提交触发新运行；重新运行旧记录仍使用旧版流水线。
+
 当前尚未替你推送 Git 提交、配置 GitHub Secrets、修改 DNS 或修改原项目的 Caddyfile；这些凭据与入口准备完成后，推送 `main` 即会触发部署。
 
 ## 5. 排查与手动回滚
