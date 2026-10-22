@@ -2,23 +2,23 @@
 export const SCENE = {
   width: 1200,
   height: 675,
-  earth: { left: 300, top: 56, width: 600 },
-  // Separate ellipses spread the foreground arcs out like the reference artwork.
+  earth: { left: 280, top: 32, width: 680 },
+  // Wide, tilted ellipses follow the reference composition, including off-stage arcs.
   orbits: [
-    { centerX: 600, centerY: 310, radiusX: 340, radiusY: 85, tilt: -14, planetSize: 220 },
-    { centerX: 600, centerY: 330, radiusX: 385, radiusY: 110, tilt: -14, planetSize: 210 },
-    { centerX: 600, centerY: 350, radiusX: 430, radiusY: 125, tilt: -14, planetSize: 190 },
+    { centerX: 600, centerY: 300, radiusX: 520, radiusY: 140, tilt: -16, planetSize: 300 },
+    { centerX: 600, centerY: 300, radiusX: 620, radiusY: 180, tilt: -16, planetSize: 300 },
+    { centerX: 600, centerY: 330, radiusX: 720, radiusY: 220, tilt: -16, planetSize: 300 },
   ],
 } as const
 
 // Each page has two planets on each track, separated by half a revolution.
 export const PLANET_SLOTS = [
-  { track: 1, phase: -1.15 },
-  { track: 1, phase: Math.PI - 1.15 },
-  { track: 2, phase: 0 },
-  { track: 2, phase: Math.PI },
-  { track: 0, phase: 1.05 },
-  { track: 0, phase: Math.PI + 1.05 },
+  { track: 0, phase: -1.15 },
+  { track: 0, phase: Math.PI - 1.15 },
+  { track: 1, phase: 0 },
+  { track: 1, phase: Math.PI },
+  { track: 2, phase: 0.55 },
+  { track: 2, phase: Math.PI + 0.55 },
 ] as const
 
 export function orbitPoint(angle: number, track = 0) {

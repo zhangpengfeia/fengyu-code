@@ -74,7 +74,7 @@ python3 scripts/optimize-assets.py
 
 ## 动画参数
 
-`src/config/scene.ts` 统一地球大小、三条轨道的星球尺寸、中心、半径和倾角；`PLANET_SLOTS` 将每组六颗星球分到三条轨道，每条两颗。轨道 SVG 与 `PlanetOrbit.vue` 共用 `orbitPoint()` 几何计算，`planetPosition()` 按星球槽位选择对应轨道，`styleFor()` 控制纵深及选中放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。
+`src/config/scene.ts` 统一地球大小、三条轨道的星球尺寸、中心、半径和倾角；`PLANET_SLOTS` 将每组六颗星球分到三条轨道，每条两颗。轨道 SVG 与 `PlanetOrbit.vue` 共用 `orbitPoint()` 几何计算，`planetPosition()` 按星球槽位选择对应轨道，`styleFor()` 控制纵深及选中放大倍率，`usePlanetOrbit.ts` 中 `ORBIT_SPEED` 控制公转速度。背景地球独立于动画层，不参与旋转或缩放。三条轨道按参考图采用宽幅构图，允许轨道和星球经过场景边界，星球不会因靠近边缘而自动缩小。
 
 原切图已包含册数文字，因此采用图案保持正向的轨道公转，避免旋转整张图片导致文字倒置。若需球体纹理自转，可替换为不含文字的球体素材并单独叠加册数标签。
 

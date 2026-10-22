@@ -7,9 +7,9 @@ import { SCENE, planetPosition } from '../config/scene'
 const props = defineProps<{ planets: Planet[]; selected: number; angle: number }>()
 defineEmits<{ select: [id: number] }>()
 
-function styleFor(index: number, id: number): CSSProperties {
+function styleFor(index: number, planet: Planet): CSSProperties {
   const point = planetPosition(index, props.angle)
-  const scale = 0.5 + point.depth * 0.3 + (id === props.selected ? 0.52 : 0)
+  const scale = 0.5 + point.depth * 0.3 + (planet.id === props.selected ? 0.52 : 0)
   return {
     left: `${(point.x / SCENE.width) * 100}%`,
     top: `${(point.y / SCENE.height) * 100}%`,
@@ -28,7 +28,7 @@ function styleFor(index: number, id: number): CSSProperties {
       :data-orbit="planetPosition(index, angle).track + 1"
       :planet="planet"
       :selected="selected === planet.id"
-      :style="styleFor(index, planet.id)"
+      :style="styleFor(index, planet)"
       @select="$emit('select', $event)"
     />
   </div>
