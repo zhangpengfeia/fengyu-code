@@ -1,6 +1,6 @@
 # AIM 趣智 · 数创星球
 
-Vue 3 + TypeScript + Vite + Less 的交互式星球目录，使用提供的 PDF 切图转换而来的透明 PNG。
+Vue 3 + TypeScript + Vite + Less 的交互式星球目录，使用提供的 PDF 切图制作的透明素材。原 PNG 保留，页面使用缩小并压缩的 WebP。
 
 ## 启动
 
@@ -54,6 +54,23 @@ swift -module-cache-path /private/tmp/aim-swift-cache scripts/convert-assets.swi
 `scripts/trim-assets.py` 可用 Pillow 去除星球 PNG 的透明页边距。
 
 已转换星球和第三册目录中共 39 份 PDF，PNG 已随工程提供，启动项目不需要原素材目录。
+
+## 图片加载优化
+
+页面使用的 16 张素材由约 5.32 MB PNG 压缩为约 712 KB WebP，保留透明背景。星球最长边 768px，地球 1440px，标题 1600px，头像 640px；页面仍按原宽高比显示。
+
+- 首屏只等待当前六颗星球和四张公共图片，下载并解码完成后展示场景、启动公转；等待时显示进度，失败可重试。
+- 当前组就绪后，以低优先级预加载另一组星球；切换时复用已解码图片，下载和解码并发受限。
+- WebP 由 Vite 生成内容哈希文件名，生产 Nginx 缓存一年；更新素材后 URL 自动变化。PNG 原素材不使用永久缓存。
+- 页面中的图片使用异步解码提示。图片优化减少下载量和解码尺寸，实际耗时仍受手机网络和设备性能影响。
+
+优化产物已随仓库提供，CI 不需要 Pillow。更新原 PNG 后，可在安装 Pillow 的 Python 环境重新生成：
+
+```sh
+python3 scripts/optimize-assets.py
+```
+
+素材输出为 `src/assets/optimized/`。加载流程见 `src/composables/useSceneAssets.ts`，加载界面见 `src/components/SceneLoading.vue`。
 
 ## 动画参数
 

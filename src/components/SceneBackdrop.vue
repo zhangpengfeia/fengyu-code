@@ -5,8 +5,9 @@ import OrbitTracks from './OrbitTracks.vue'
 </script>
 
 <template>
-  <img class="background-art" :src="artwork.background" alt="" />
+  <img decoding="async" class="background-art" :src="artwork.background" alt="" />
   <img
+    decoding="async"
     class="earth"
     :src="artwork.earth"
     :style="{

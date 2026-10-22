@@ -11,7 +11,7 @@ defineProps<{ page: number }>()
   <div class="top-actions">
     <span class="chapter">星球目录 · {{ page === 0 ? '01 — 06' : '07 — 12' }}</span>
   </div>
-  <img class="title-art" :src="artwork.title" alt="AIM趣智 · 数创星球" />
+  <img decoding="async" class="title-art" :src="artwork.title" alt="AIM趣智 · 数创星球" />
   <p class="subtitle">点击一颗星球，开启你的奇妙探索</p>
 </template>
 

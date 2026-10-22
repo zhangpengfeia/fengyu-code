@@ -15,6 +15,7 @@ defineEmits<{ select: [id: number] }>()
   >
     <span class="planet-glow" />
     <img
+      decoding="async"
       class="planet-body"
       :src="planet.image"
       :style="{ transform: `scale(${planet.visualScale})` }"

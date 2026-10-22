@@ -3,9 +3,10 @@ export const SCENE = {
   width: 1200,
   height: 675,
   // Preserve the asset's aspect ratio and leave room above and below the globe.
-  earth: { left: 280, top: 32, width: 680 },
-  planetSize: 300,
-  orbit: { centerX: 570, centerY: 320, radiusX: 540, radiusY: 180, tilt: -14 },
+  earth: { left: 300, top: 56, width: 600 },
+  // Inset the orbit for the full selected globe, including its visual scale.
+  planetSize: 240,
+  orbit: { centerX: 600, centerY: 325, radiusX: 398, radiusY: 110, tilt: -7 },
 } as const
 
 export function orbitPoint(angle: number, radiusScale = 1) {

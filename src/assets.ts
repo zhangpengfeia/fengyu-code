@@ -1,10 +1,21 @@
-/** 1 PNGs rendered from the supplied PDF slices. See public/assets/manifest.json for sources. */
+/** Optimized derivatives; Vite adds content hashes for long-lived browser caching. */
+const imagesByPath = import.meta.glob<string>('./assets/optimized/*.webp', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+})
+
+function imageUrl(name: string): string {
+  const url = imagesByPath[`./assets/optimized/${name}.webp`]
+  if (!url) throw new Error(`Missing optimized image: ${name}`)
+  return url
+}
 
 export const artwork = {
-  background: '/assets/scene-1.png',
-  earth: '/assets/scene-14.png',
-  title: '/assets/scene-0.png',
-  profile: '/assets/scene-10.png',
+  background: imageUrl('scene-1'),
+  earth: imageUrl('scene-14'),
+  title: imageUrl('scene-0'),
+  profile: imageUrl('scene-10'),
 }
 const numerals = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
 const images = [
@@ -31,7 +42,7 @@ export interface Planet {
 export const planets: Planet[] = numerals.map((numeral, index) => ({
   id: index + 1,
   name: `第${numeral}册`,
-  image: `/assets/${images[index]}.png`,
+  image: imageUrl(images[index]!),
   // The forest slice includes a wide baked glow; normalize its visible globe diameter.
   visualScale: index === 2 ? 1.18 : 1,
 }))

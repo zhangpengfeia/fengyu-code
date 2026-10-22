@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import { planets } from '../assets'
 
 const PAGE_SIZE = 6
@@ -6,7 +6,7 @@ const ANGLE_STEP = (Math.PI * 2) / PAGE_SIZE
 const ORBIT_SPEED = 0.045
 
 /** Owns selection, paging and animation; UI components only receive state/events. */
-export function usePlanetOrbit() {
+export function usePlanetOrbit(animationEnabled: Ref<boolean>) {
   const selected = ref(3)
   const page = ref(0)
   let focusing = false
@@ -49,7 +49,7 @@ export function usePlanetOrbit() {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0
     previous = now
 
-    if (!media?.matches) {
+    if (animationEnabled.value && !media?.matches) {
       if (focusing) {
         angle.value += (targetAngle - angle.value) * (1 - Math.exp(-delta * 5))
         if (Math.abs(targetAngle - angle.value) < 0.001) {

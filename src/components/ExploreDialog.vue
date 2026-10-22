@@ -27,7 +27,7 @@ defineExpose({ open })
     @keydown.stop
   >
     <button class="close-dialog" aria-label="关闭" @click="close">×</button>
-    <img class="dialog-planet" :src="planet.image" alt="" />
+    <img decoding="async" class="dialog-planet" :src="planet.image" alt="" />
     <p class="dialog-eyebrow">AIM 星际探索</p>
     <h2 id="explore-title">{{ planet.name }}</h2>
     <p>已抵达{{ planet.name }}星球，准备开启新的探索！</p>

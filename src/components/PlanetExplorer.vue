@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watchEffect } from 'vue'
 import SceneBackdrop from './SceneBackdrop.vue'
 import ExplorerHeader from './ExplorerHeader.vue'
 import PlanetOrbit from './PlanetOrbit.vue'
 import ExplorerControls from './ExplorerControls.vue'
 import ExploreDialog from './ExploreDialog.vue'
 import { usePlanetOrbit } from '../composables/usePlanetOrbit'
+import { useSceneAssets } from '../composables/useSceneAssets'
+import SceneLoading from './SceneLoading.vue'
 
+const animationEnabled = ref(false)
 const { selected, page, angle, visible, active, current, select, switchPage, step } =
-  usePlanetOrbit()
+  usePlanetOrbit(animationEnabled)
+const { ready, error, progress, retry } = useSceneAssets(page)
+watchEffect(() => {
+  animationEnabled.value = ready.value
+})
 const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
 </script>
 
@@ -16,17 +23,20 @@ const exploreDialog = ref<InstanceType<typeof ExploreDialog>>()
   <main class="universe" @keydown.left.prevent="step(-1)" @keydown.right.prevent="step(1)">
     <div class="landscape-viewport">
       <div class="scene">
-        <SceneBackdrop />
-        <ExplorerHeader :page="page" />
-        <PlanetOrbit :planets="visible" :selected="selected" :angle="angle" @select="select" />
-        <ExplorerControls
-          :planets="visible"
-          :selected="selected"
-          :active-name="active.name"
-          @select="select"
-          @switch-page="switchPage"
-          @explore="exploreDialog?.open()"
-        />
+        <template v-if="ready">
+          <SceneBackdrop />
+          <ExplorerHeader :page="page" />
+          <PlanetOrbit :planets="visible" :selected="selected" :angle="angle" @select="select" />
+          <ExplorerControls
+            :planets="visible"
+            :selected="selected"
+            :active-name="active.name"
+            @select="select"
+            @switch-page="switchPage"
+            @explore="exploreDialog?.open()"
+          />
+        </template>
+        <SceneLoading v-else :progress="progress" :error="error" @retry="retry" />
       </div>
     </div>
     <ExploreDialog ref="exploreDialog" :planet="active" />
