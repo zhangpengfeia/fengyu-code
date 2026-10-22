@@ -17,10 +17,8 @@ const props = withDefaults(defineProps<{ active?: boolean; initialBook?: number 
 const emit = defineEmits<{ enter: [bookId: number] }>()
 const animationEnabled = ref(false)
 const displayType = ref<'orbit' | 'grid'>('orbit')
-const { selected, angle, visible, active, current, select, step } = usePlanetOrbit(
-  animationEnabled,
-  props.initialBook,
-)
+const { selected, angle, visible, active, current, select, step, startDrag, dragBy, endDrag } =
+  usePlanetOrbit(animationEnabled, props.initialBook)
 const { ready, error, progress, retry } = useSceneAssets()
 watchEffect(() => {
   animationEnabled.value = ready.value && props.active && displayType.value === 'orbit'
@@ -38,6 +36,9 @@ watchEffect(() => {
         :selected="selected"
         :angle="angle"
         @select="select"
+        @drag-start="startDrag"
+        @drag="dragBy"
+        @drag-end="endDrag"
       />
       <PlanetGrid v-else :planets="visible" :selected="selected" @select="select" />
       <ExplorerControls

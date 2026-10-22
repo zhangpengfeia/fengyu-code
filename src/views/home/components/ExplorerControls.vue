@@ -14,7 +14,8 @@ defineEmits<{ select: [id: number]; toggleDisplay: []; explore: [] }>()
   <button class="explore" @click="$emit('explore')">探索{{ activeName }} <span>›</span></button>
   <footer class="bottom-bar">
     <span class="hint">
-      <span class="mouse-icon">☝</span> 点击星球放大 <span class="hint-divider">/</span> ← → 切换
+      <span class="mouse-icon">☝</span> 点击星球放大 <span class="hint-divider">/</span>
+      {{ displayType === 'orbit' ? '左右滑动旋转' : '← → 切换' }}
     </span>
     <nav aria-label="快捷选择星球">
       <button

@@ -3,9 +3,20 @@ import { computed, type CSSProperties } from 'vue'
 import type { Planet } from '../../../assets'
 import PlanetCard from './PlanetCard.vue'
 import { SCENE, planetPosition, planetScale } from '../../../config/scene'
+import { useOrbitDrag } from '../../../composables/useOrbitDrag'
 
 const props = defineProps<{ planets: Planet[]; selected: number; angle: number }>()
-defineEmits<{ select: [id: number] }>()
+const emit = defineEmits<{
+  select: [id: number]
+  dragStart: []
+  drag: [radians: number]
+  dragEnd: []
+}>()
+const { dragging, pointerDown, pointerMove, pointerEnd, clickCapture } = useOrbitDrag({
+  start: () => emit('dragStart'),
+  move: (radians) => emit('drag', radians),
+  end: () => emit('dragEnd'),
+})
 
 const orbitPlanets = computed(() =>
   props.planets.map((planet, index) => {
@@ -28,7 +39,18 @@ const orbitPlanets = computed(() =>
 </script>
 
 <template>
-  <div class="planet-system" aria-label="册数星球选择">
+  <div
+    class="planet-system"
+    :class="{ dragging }"
+    aria-label="册数星球选择，可左右滑动"
+    @pointerdown="pointerDown"
+    @pointermove="pointerMove"
+    @pointerup="pointerEnd"
+    @pointercancel="pointerEnd"
+    @lostpointercapture.self="pointerEnd"
+    @click.capture="clickCapture"
+    @dragstart.prevent
+  >
     <PlanetCard
       v-for="{ planet, track, interactive, style } in orbitPlanets"
       :key="planet.id"
@@ -49,6 +71,14 @@ const orbitPlanets = computed(() =>
 
 .planet-system {
   .absolute-fill();
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+
+  &.dragging,
+  &.dragging :deep(.planet) {
+    cursor: grabbing;
+  }
 
   // RAF already interpolates position and scale; a CSS transform transition would lag behind.
   :deep(.planet) {

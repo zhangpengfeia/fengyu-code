@@ -31,6 +31,7 @@
 }
 
 .landscape-viewport {
+  --scene-rotated: 0;
   --landscape-height: var(--available-height);
   position: absolute;
   left: env(safe-area-inset-left, 0px);
@@ -60,6 +61,7 @@
 // Rotate the content, so landscape also works in portrait-locked mobile WebViews.
 @media @mobile-portrait {
   .landscape-viewport {
+    --scene-rotated: 1;
     --landscape-height: var(--available-width);
     left: calc(env(safe-area-inset-left, 0px) + var(--available-width) / 2);
     top: calc(env(safe-area-inset-top, 0px) + var(--available-height) / 2);

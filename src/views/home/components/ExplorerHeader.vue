@@ -24,6 +24,13 @@ defineProps<{ displayType: 'orbit' | 'grid' }>()
 <style scoped lang="less">
 @import (reference) '../../../styles/variables.less';
 
+.profile,
+.top-actions,
+.title-art,
+.subtitle {
+  pointer-events: none;
+}
+
 .profile {
   position: absolute;
   top: 4%;

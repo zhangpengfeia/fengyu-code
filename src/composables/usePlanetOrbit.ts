@@ -8,6 +8,7 @@ const ORBIT_SPEED = 0.045
 export function usePlanetOrbit(animationEnabled: Ref<boolean>, initialBook = 3) {
   const selected = ref(initialBook)
   let focusing = false
+  let dragging = false
   const angle = ref(-PLANET_SLOTS[initialBook - 1]!.phase)
   const visible = planets
   const active = computed(() => planets.find((planet) => planet.id === selected.value)!)
@@ -35,11 +36,25 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>, initialBook = 3) 
     select(((selected.value - 1 + direction + planets.length) % planets.length) + 1)
   }
 
+  function startDrag() {
+    dragging = true
+    focusing = false
+  }
+
+  function dragBy(radians: number) {
+    if (dragging) angle.value += radians
+  }
+
+  function endDrag() {
+    dragging = false
+    targetAngle = angle.value
+  }
+
   function animate(now: number) {
     const delta = previous ? Math.min((now - previous) / 1000, 0.05) : 0
     previous = now
 
-    if (animationEnabled.value && !media?.matches) {
+    if (animationEnabled.value && !dragging && !media?.matches) {
       if (focusing) {
         angle.value += (targetAngle - angle.value) * (1 - Math.exp(-delta * 5))
         if (Math.abs(targetAngle - angle.value) < 0.001) {
@@ -79,5 +94,8 @@ export function usePlanetOrbit(animationEnabled: Ref<boolean>, initialBook = 3) 
     current,
     select,
     step,
+    startDrag,
+    dragBy,
+    endDrag,
   }
 }
