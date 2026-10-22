@@ -1,0 +1,276 @@
+[
+  {
+    "file": "planet-0.png",
+    "height": 1220,
+    "source": "12个星球/Frame.bitmap.pdf",
+    "width": 1220
+  },
+  {
+    "file": "planet-1.png",
+    "height": 1195,
+    "source": "12个星球/Frame（1）.bitmap.pdf",
+    "width": 1195,
+    "pdfRenderSize": [
+      1196,
+      1196
+    ]
+  },
+  {
+    "file": "planet-2.png",
+    "height": 1207,
+    "source": "12个星球/Frame（2）.bitmap.pdf",
+    "width": 1345,
+    "pdfRenderSize": [
+      1348,
+      1208
+    ]
+  },
+  {
+    "file": "planet-3.png",
+    "height": 1167,
+    "source": "12个星球/Frame（3）.bitmap.pdf",
+    "width": 1167,
+    "pdfRenderSize": [
+      1168,
+      1168
+    ]
+  },
+  {
+    "file": "planet-4.png",
+    "height": 1079,
+    "source": "12个星球/Frame（4）.bitmap.pdf",
+    "width": 1079,
+    "pdfRenderSize": [
+      1080,
+      1080
+    ]
+  },
+  {
+    "file": "planet-5.png",
+    "height": 1184,
+    "source": "12个星球/Frame（5）.bitmap.pdf",
+    "width": 1184
+  },
+  {
+    "file": "planet-6.png",
+    "height": 1347,
+    "source": "12个星球/Frame（6）.bitmap.pdf",
+    "width": 1372,
+    "pdfRenderSize": [
+      1372,
+      1348
+    ]
+  },
+  {
+    "file": "planet-7.png",
+    "height": 1365,
+    "source": "12个星球/Group.bitmap.pdf",
+    "width": 1484,
+    "pdfRenderSize": [
+      1520,
+      1492
+    ]
+  },
+  {
+    "file": "planet-8.png",
+    "height": 1060,
+    "source": "12个星球/Group（1）.bitmap.pdf",
+    "width": 1626,
+    "pdfRenderSize": [
+      1896,
+      1972
+    ]
+  },
+  {
+    "file": "planet-9.png",
+    "height": 1197,
+    "source": "12个星球/分组 1.bitmap.pdf",
+    "width": 1203,
+    "pdfRenderSize": [
+      1204,
+      1200
+    ]
+  },
+  {
+    "file": "planet-10.png",
+    "height": 596,
+    "source": "12个星球/分组 10.bitmap.pdf",
+    "width": 1340
+  },
+  {
+    "file": "planet-11.png",
+    "height": 256,
+    "source": "12个星球/分组 12.bitmap.pdf",
+    "width": 756
+  },
+  {
+    "file": "planet-12.png",
+    "height": 228,
+    "source": "12个星球/分组 13.bitmap.pdf",
+    "width": 684
+  },
+  {
+    "file": "planet-13.png",
+    "height": 228,
+    "source": "12个星球/分组 14.bitmap.pdf",
+    "width": 684
+  },
+  {
+    "file": "planet-14.png",
+    "height": 184,
+    "source": "12个星球/分组 15.bitmap.pdf",
+    "width": 544
+  },
+  {
+    "file": "planet-15.png",
+    "height": 240,
+    "source": "12个星球/分组 16.bitmap.pdf",
+    "width": 716
+  },
+  {
+    "file": "planet-16.png",
+    "height": 256,
+    "source": "12个星球/分组 17.bitmap.pdf",
+    "width": 756
+  },
+  {
+    "file": "planet-17.png",
+    "height": 212,
+    "source": "12个星球/分组 18.bitmap.pdf",
+    "width": 628
+  },
+  {
+    "file": "planet-18.png",
+    "height": 216,
+    "source": "12个星球/分组 19.bitmap.pdf",
+    "width": 644
+  },
+  {
+    "file": "planet-19.png",
+    "height": 1190,
+    "source": "12个星球/分组 1（1）.bitmap.pdf",
+    "width": 1199,
+    "pdfRenderSize": [
+      1600,
+      1596
+    ]
+  },
+  {
+    "file": "planet-20.png",
+    "height": 1020,
+    "source": "12个星球/分组 1（2）.bitmap.pdf",
+    "width": 1020,
+    "pdfRenderSize": [
+      1412,
+      1412
+    ]
+  },
+  {
+    "file": "planet-21.png",
+    "height": 228,
+    "source": "12个星球/分组 20.bitmap.pdf",
+    "width": 672
+  },
+  {
+    "file": "planet-22.png",
+    "height": 220,
+    "source": "12个星球/分组 21.bitmap.pdf",
+    "width": 656
+  },
+  {
+    "file": "planet-23.png",
+    "height": 256,
+    "source": "12个星球/分组 22.bitmap.pdf",
+    "width": 756
+  },
+  {
+    "file": "scene-0.png",
+    "height": 405,
+    "source": "第三册目录/AIM趣智·数创星球.bitmap.pdf",
+    "width": 2400
+  },
+  {
+    "file": "scene-1.png",
+    "height": 1350,
+    "source": "第三册目录/Background_1_37_.bitmap.pdf",
+    "width": 2400
+  },
+  {
+    "file": "scene-2.png",
+    "height": 588,
+    "source": "第三册目录/Frame.bitmap.pdf",
+    "width": 576
+  },
+  {
+    "file": "scene-3.png",
+    "height": 336,
+    "source": "第三册目录/Frame（1）.bitmap.pdf",
+    "width": 428
+  },
+  {
+    "file": "scene-4.png",
+    "height": 920,
+    "source": "第三册目录/Frame（2）.bitmap.pdf",
+    "width": 920
+  },
+  {
+    "file": "scene-5.png",
+    "height": 2209,
+    "source": "第三册目录/Frame（3）.bitmap.pdf",
+    "width": 2400
+  },
+  {
+    "file": "scene-6.png",
+    "height": 1636,
+    "source": "第三册目录/Frame（4）.bitmap.pdf",
+    "width": 1636
+  },
+  {
+    "file": "scene-7.png",
+    "height": 920,
+    "source": "第三册目录/Frame（5）.bitmap.pdf",
+    "width": 920
+  },
+  {
+    "file": "scene-8.png",
+    "height": 1907,
+    "source": "第三册目录/Starts_6_.bitmap.pdf",
+    "width": 2400
+  },
+  {
+    "file": "scene-9.png",
+    "height": 1560,
+    "source": "第三册目录/分组 1.bitmap.pdf",
+    "width": 1568
+  },
+  {
+    "file": "scene-10.png",
+    "height": 596,
+    "source": "第三册目录/分组 10.bitmap.pdf",
+    "width": 1340
+  },
+  {
+    "file": "scene-11.png",
+    "height": 492,
+    "source": "第三册目录/分组 11.bitmap.pdf",
+    "width": 1468
+  },
+  {
+    "file": "scene-12.png",
+    "height": 168,
+    "source": "第三册目录/分组 12.bitmap.pdf",
+    "width": 548
+  },
+  {
+    "file": "scene-13.png",
+    "height": 1202,
+    "source": "第三册目录/分组 4.bitmap.pdf",
+    "width": 2400
+  },
+  {
+    "file": "scene-14.png",
+    "height": 2151,
+    "source": "第三册目录/蒙版分组.bitmap.pdf",
+    "width": 2400
+  }
+]

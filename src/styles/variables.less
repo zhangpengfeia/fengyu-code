@@ -1,0 +1,19 @@
+@space-background: #0a1739;
+@scene-background: #122454;
+@text-color: #fff;
+@muted-color: #a9bcdf;
+@focus-color: #fff49b;
+
+@mobile-portrait: ~'(max-width: 650px) and (orientation: portrait)';
+@mobile-landscape: ~'(orientation: landscape) and (max-height: 600px)';
+
+.absolute-fill() {
+  position: absolute;
+  inset: 0;
+}
+
+.round-control(@size) {
+  width: @size;
+  height: @size;
+  border-radius: 50%;
+}
