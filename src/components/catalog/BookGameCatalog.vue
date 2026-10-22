@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, type CSSProperties } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { artwork } from '../../assets'
 import { catalogBackIcon, type BookDefinition, type GameMode } from '../../config/books'
 import { loadGroup } from '../../composables/useSceneAssets'
@@ -7,7 +7,7 @@ import LandscapeStage from '../scene/LandscapeStage.vue'
 import SceneLoading from '../scene/SceneLoading.vue'
 import CatalogBackdrop from './CatalogBackdrop.vue'
 import CatalogEnvironment from './CatalogEnvironment.vue'
-import GameCard from './GameCard.vue'
+import GameCarousel from './GameCarousel.vue'
 import GameModeSwitch from './GameModeSwitch.vue'
 
 const props = defineProps<{ book: BookDefinition }>()
@@ -25,16 +25,6 @@ const theme = computed(() => ({
   '--book-accent': props.book.theme.accent,
   '--book-glow': props.book.theme.glow,
 }))
-const slots = [
-  { x: 50, y: 70, width: 26, z: 25 },
-  { x: 78, y: 59, width: 21, z: 22 },
-  { x: 90, y: 37, width: 17, z: 20 },
-  { x: 92, y: 17, width: 12, z: 18 },
-  { x: 79, y: 9, width: 8, z: 16 },
-  { x: 24, y: 25, width: 10, z: 15 },
-  { x: 12, y: 43, width: 13, z: 19 },
-  { x: 17, y: 68, width: 20, z: 23 },
-]
 let disposed = false
 let request = 0
 async function prepare() {
@@ -71,11 +61,6 @@ function select(index: number) {
 function step(direction: number) {
   select((selected.value + direction + props.book.games.length) % props.book.games.length)
 }
-function cardStyle(index: number): CSSProperties | undefined {
-  if (layout.value === 'grid') return undefined
-  const slot = slots[(index - selected.value + props.book.games.length) % props.book.games.length]!
-  return { left: `${slot.x}%`, top: `${slot.y}%`, width: `${slot.width}%`, zIndex: slot.z }
-}
 function launch() {
   const entry = active.value.entries[mode.value]
   if (!entry) {
@@ -108,17 +93,13 @@ onBeforeUnmount(() => {
       <img class="catalog-profile" :src="artwork.profile" alt="杨同学，大师" />
       <h1 class="book-badge">{{ book.name }}</h1>
       <h2 class="game-title">{{ active.title }}</h2>
-      <div class="game-list" :class="layout" role="group" :aria-label="`${book.name}的8个游戏`">
-        <GameCard
-          v-for="(game, index) in book.games"
-          :key="game.id"
-          :game="game"
-          :index="index"
-          :selected="selected === index"
-          :style="cardStyle(index)"
-          @select="select(index)"
-        />
-      </div>
+      <GameCarousel
+        :games="book.games"
+        :selected="selected"
+        :layout="layout"
+        :book-name="book.name"
+        @select="select"
+      />
       <GameModeSwitch v-model="mode" @update:model-value="message = ''" />
       <button class="start-game" @click="launch">
         {{ mode === 'training' ? '开始训练' : '开始测评' }} <span>›</span>
@@ -151,6 +132,11 @@ onBeforeUnmount(() => {
 .book-catalog {
   --scene-background: transparent;
   background: var(--book-background);
+}
+.catalog-profile,
+.book-badge,
+.game-title {
+  pointer-events: none;
 }
 .catalog-profile {
   position: absolute;
@@ -187,27 +173,6 @@ onBeforeUnmount(() => {
   color: #fffdf1;
   text-shadow: 0 4px 5px #2a160b99;
   z-index: 14;
-}
-.game-list {
-  position: absolute;
-  inset: 0;
-}
-.game-list.grid {
-  inset: 43% 10% 18%;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1cqw;
-  z-index: 25;
-  :deep(.game-card) {
-    position: relative;
-    left: auto;
-    top: auto;
-    width: 100%;
-    transform: none;
-    height: 100%;
-    min-height: 0;
-    aspect-ratio: auto;
-  }
 }
 .catalog-back {
   position: absolute;
