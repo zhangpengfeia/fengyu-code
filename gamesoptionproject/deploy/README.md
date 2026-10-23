@@ -4,6 +4,10 @@
 服务器：`152.136.228.231`，SSH 用户 `root`  
 访问地址：`https://fengyucode.zhangff.cn`
 
+应用源码、依赖和部署文件位于仓库的 `gamesoptionproject/` 子目录，本文中的本地相对路径均以该目录为基准。工作流仍位于仓库根目录 `.github/workflows/deploy.yml`，其默认 shell 工作目录、npm 缓存和 Docker 构建上下文已指向子项目。只有子项目或该工作流变更才自动触发；手动运行仍可用。
+
+本次目录迁移不改变线上域名、服务器目录、镜像名称、Compose 服务、已有 Secrets 或 `production` Environment。后续新增同级项目应独立配置工作流、域名、镜像、服务器目录、容器项目名和端口。
+
 部署沿用「基金agent」项目的 Docker、GHCR、SSH、生产环境和 Caddy 网关模式。新应用使用独立的 `fengyucode` Compose 项目，默认目录 `/project/fengyucode`，加入已有的 `crm-ai_default` Docker 网络。
 
 ## 1. 添加子域名 DNS
@@ -36,8 +40,8 @@ fengyucode.zhangff.cn {
 已根据你提供的原文件生成 `deploy/crm-ai-caddy.patch`。若原 Caddyfile 尚未包含该站点，也可以在本机应用补丁，先检查再修改原项目；已有该站点块时无需重复应用：
 
 ```sh
-git -C '/Users/a123/D盘/学习/project/基金agent' apply --check '/Users/a123/D盘/学习/project/code-ai/deploy/crm-ai-caddy.patch'
-git -C '/Users/a123/D盘/学习/project/基金agent' apply '/Users/a123/D盘/学习/project/code-ai/deploy/crm-ai-caddy.patch'
+git -C '/Users/a123/D盘/学习/project/基金agent' apply --check '/Users/a123/D盘/学习/project/code-ai/gamesoptionproject/deploy/crm-ai-caddy.patch'
+git -C '/Users/a123/D盘/学习/project/基金agent' apply '/Users/a123/D盘/学习/project/code-ai/gamesoptionproject/deploy/crm-ai-caddy.patch'
 ```
 
 然后按该项目原来的流水线发布一次，让现有 Caddy 加载新入口。只编辑服务器某个旧版本目录里的 Caddyfile，下一次原项目部署时可能被替换。

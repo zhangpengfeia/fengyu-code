@@ -3,12 +3,22 @@ name: Build and deploy Fengyu Code
 on:
   push:
     branches: [main]
+    paths:
+      - 'gamesoptionproject/**'
+      - '.github/workflows/deploy.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'gamesoptionproject/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+
+defaults:
+  run:
+    working-directory: gamesoptionproject
 
 # Keep production releases serialized, including manual runs.
 concurrency:
@@ -27,6 +37,7 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+          cache-dependency-path: gamesoptionproject/package-lock.json
       - name: Install dependencies
         timeout-minutes: 6
         run: |
@@ -35,6 +46,8 @@ jobs:
           npm config get registry
           npm ci --prefer-offline --no-audit --no-fund --foreground-scripts --loglevel=info
       - run: npm run format:check
+      - name: Check repository formatting
+        run: npx prettier --check --config .prettierrc.json --ignore-path .prettierignore ../README.md ../.github/workflows/deploy.yml
       - run: npm run build
       - name: Check deployment and recovery
         run: |
@@ -75,8 +88,8 @@ jobs:
       - name: Build Linux AMD64 image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: deploy/web.Dockerfile
+          context: gamesoptionproject
+          file: gamesoptionproject/deploy/web.Dockerfile
           platforms: linux/amd64
           load: true
           tags: ${{ steps.image.outputs.name }}

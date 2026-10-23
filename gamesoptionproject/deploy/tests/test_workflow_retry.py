@@ -8,7 +8,7 @@ import textwrap
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
-WORKFLOW = ROOT / ".github/workflows/deploy.yml"
+WORKFLOW = ROOT.parent / ".github/workflows/deploy.yml"
 
 
 def shell_step(name):
@@ -24,6 +24,18 @@ def shell_step(name):
 
 
 class WorkflowRetryTests(unittest.TestCase):
+    def test_subproject_build_and_deployment_paths(self):
+        workflow = WORKFLOW.read_text()
+        self.assertIn("working-directory: gamesoptionproject", workflow)
+        self.assertIn("cache-dependency-path: gamesoptionproject/package-lock.json", workflow)
+        self.assertIn("context: gamesoptionproject", workflow)
+        self.assertIn("file: gamesoptionproject/deploy/web.Dockerfile", workflow)
+        self.assertEqual(workflow.count("- 'gamesoptionproject/**'"), 2)
+        self.assertEqual(workflow.count("- '.github/workflows/deploy.yml'"), 2)
+        self.assertTrue((ROOT / "package-lock.json").is_file())
+        self.assertTrue((ROOT / "deploy/web.Dockerfile").is_file())
+        self.assertTrue((ROOT / ".dockerignore").is_file())
+
     def test_deploy_rerun_uses_original_published_image(self):
         with tempfile.TemporaryDirectory(prefix="fengyu-workflow-") as directory:
             root = Path(directory)
