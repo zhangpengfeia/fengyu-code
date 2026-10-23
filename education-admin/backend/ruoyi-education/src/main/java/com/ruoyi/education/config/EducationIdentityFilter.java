@@ -16,7 +16,7 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
 import java.util.*;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.ruoyi.common.core.redis.RedisCache;
 import java.time.Duration;
 
 /** Runs inside the servlet chain after Spring Security established the JWT principal. */
@@ -24,15 +24,15 @@ import java.time.Duration;
 @Order(Ordered.LOWEST_PRECEDENCE-100)
 public class EducationIdentityFilter extends OncePerRequestFilter {
     final AccessService access;final BizMapper db;final TokenService tokens;final SysPermissionService permissions;final ObjectMapper json;
-    final StringRedisTemplate redis;
-    public EducationIdentityFilter(AccessService a,BizMapper db,TokenService t,SysPermissionService p,ObjectMapper j,StringRedisTemplate redis) {access=a;this.db=db;tokens=t;permissions=p;json=j;this.redis=redis;}
+    final RedisCache redis;
+    public EducationIdentityFilter(AccessService a,BizMapper db,TokenService t,SysPermissionService p,ObjectMapper j,RedisCache redis) {access=a;this.db=db;tokens=t;permissions=p;json=j;this.redis=redis;}
     @Override protected void doFilterInternal(HttpServletRequest req,HttpServletResponse res,FilterChain chain) throws ServletException,IOException {
         var authentication=SecurityUtils.getAuthentication();
         if(authentication==null || !(authentication.getPrincipal() instanceof LoginUser user)) {chain.doFilter(req,res);return;}
         try {
             var fresh=access.active(user.getUserId());var security=db.one(BizTable.SECURITY,user.getUserId());
             String key="edu:credential:"+user.getToken();
-            if(!Objects.equals(redis.opsForValue().get(key),fresh.getPassword())) throw new ServiceException("密码或会话已更新，请重新登录",401);
+            if(!Objects.equals(redis.getCacheObject(key),fresh.getPassword())) throw new ServiceException("密码或会话已更新，请重新登录",401);
             redis.expire(key,Duration.ofMinutes(35));user.setUser(fresh);user.setPermissions(permissions.getMenuPermission(fresh));
             String path=req.getRequestURI();
             boolean must=security!=null && AccessService.id(security.get("must_change_pwd"))==1;

@@ -2,7 +2,7 @@
 """Destructive ONLY to disposable dev fixtures; never point this at a production instance."""
 import argparse,json,os,re,subprocess,urllib.request,urllib.error
 from datetime import datetime,timezone,timedelta
-p=argparse.ArgumentParser();p.add_argument('--base',default='http://127.0.0.1:8081');p.add_argument('--redis-cli',required=True);p.add_argument('--redis-port',default='6379');p.add_argument('--allow-development',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--base',default='http://127.0.0.1:8081');p.add_argument('--redis-cli');p.add_argument('--redis-port',default='6379');p.add_argument('--allow-development',action='store_true');args=p.parse_args()
 if not args.allow_development or not re.match(r'^http://(127\.0\.0\.1|localhost):\d+$',args.base):p.error('Only explicitly allowed loopback disposable development environments may be tested.')
 admin_password=os.environ['EDU_TEST_ADMIN_PASSWORD'];demo_password=os.environ['EDU_TEST_DEMO_PASSWORD']
 results=[]
@@ -27,6 +27,7 @@ def check(label,condition,detail=''):
 def login(username,password,mode='ACCOUNT',school=None):
  status,c,_=call('/captchaImage');code=''
  if c.get('captchaEnabled',True):
+  if not args.redis_cli:raise RuntimeError('Memory-mode smoke tests require the disposable dev server started with --education.dev-captcha-enabled=false; normal dev keeps captcha enabled.')
   raw=subprocess.check_output([args.redis_cli,'-p',args.redis_port,'--raw','GET','captcha_codes:'+c['uuid']],text=True).strip()
   code=json.loads(raw)
  status,r,_=call('/biz/auth/login','POST',{'username':username,'password':password,'mode':mode,'school_id':school,'code':str(code),'uuid':c.get('uuid','')})
@@ -49,6 +50,9 @@ if me['data']['must_change_pwd']:
  status,r,_=call('/biz/auth/password','POST',{'old_password':admin_password,'new_password':rotated},admin);check('initial password changed',status==200,r)
  status,_,_=call('/biz/auth/me',token=admin);check('old bearer invalid after password change',status==401)
  admin=login('admin',rotated)
+for attempt in range(2):
+ status,r,_=call('/system/dict/data/type/sys_normal_disable',token=admin)
+ check('native dictionary '+('cache read' if attempt else 'first load'),status==200 and r.get('code')==200 and len(r.get('data',[]))>=2,r)
 teacher=login('teacher',demo_password);student=login('student',demo_password)
 phone=login('13800000002',demo_password,'PHONE');school=login('0001',demo_password,'STUDENT','11000')
 status,r,_=call('/getRouters',token=student);check('student menu excludes user management','用户管理' not in json.dumps(r,ensure_ascii=False))

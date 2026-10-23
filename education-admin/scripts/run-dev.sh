@@ -7,4 +7,4 @@ export SPRING_PROFILES_ACTIVE=dev
 export EDU_GAMES_ROOT="$EDU_ROOT/games"
 cd "$EDU_ROOT/backend"
 ./mvnw -B -ntp -DskipTests package
-exec java -jar ruoyi-admin/target/ruoyi-admin.jar
+exec java -jar ruoyi-admin/target/ruoyi-admin.jar "$@"

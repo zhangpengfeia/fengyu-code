@@ -6,7 +6,7 @@ import com.ruoyi.education.domain.*;
 import com.ruoyi.education.mapper.BizMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.ruoyi.common.core.redis.RedisCache;
 import java.time.Duration;
 import java.nio.file.*;
 import java.security.SecureRandom;
@@ -15,14 +15,14 @@ import static com.ruoyi.education.service.AccessService.*;
 
 @Service
 public class GameService {
-    final BizMapper db;final AccessService access;final CatalogService catalog;final StringRedisTemplate redis;final ObjectMapper json;
+    final BizMapper db;final AccessService access;final CatalogService catalog;final RedisCache redis;final ObjectMapper json;
     final Path root; final String origin;
-    public GameService(BizMapper db,AccessService a,CatalogService c,StringRedisTemplate redis,ObjectMapper json,@Value("${education.games-root:../games}") String root,@Value("${education.game-origin:http://127.0.0.1:8081}") String origin) {
+    public GameService(BizMapper db,AccessService a,CatalogService c,RedisCache redis,ObjectMapper json,@Value("${education.games-root:../games}") String root,@Value("${education.game-origin:http://127.0.0.1:8081}") String origin) {
         this.db=db;access=a;catalog=c;this.redis=redis;this.json=json;this.root=Path.of(root).toAbsolutePath().normalize();this.origin=origin.replaceAll("/$","");
     }
     static String random() {byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);}
     void put(String key,Map<String,Object> value,Duration ttl) {
-        try {redis.opsForValue().set(key,json.writeValueAsString(value),ttl);} catch(Exception ex) {throw new ServiceException("游戏会话服务不可用",503);}
+        try {redis.set(key,json.writeValueAsString(value),ttl);} catch(Exception ex) {throw new ServiceException("游戏会话服务不可用",503);}
     }
     Map<String,Object> read(String value) {
         try {if(value==null) deny();return json.readValue(value,new com.fasterxml.jackson.core.type.TypeReference<Map<String,Object>>(){});} catch(ServiceException ex) {throw ex;} catch(Exception ex) {deny();return Map.of();}
@@ -37,7 +37,7 @@ public class GameService {
     }
     public String exchange(String code,String ticket) {
         if(ticket==null||!ticket.matches("[A-Za-z0-9_-]{43}")) deny();
-        var data=read(redis.opsForValue().getAndDelete("edu:ticket:"+ticket));
+        var data=read(redis.getAndDelete("edu:ticket:"+ticket));
         if(!code.equals(data.get("code"))) deny();check(data);
         String sid=random();put("edu:game-session:"+sid,data,Duration.ofMinutes(30));return sid;
     }
@@ -52,7 +52,7 @@ public class GameService {
     }
     public Path asset(String code,String sid,String asset) {
         if(sid==null||!sid.matches("[A-Za-z0-9_-]{43}")) deny();
-        var data=read(redis.opsForValue().get("edu:game-session:"+sid));if(!code.equals(data.get("code"))) deny();return file(check(data),asset);
+        var data=read(redis.getCacheObject("edu:game-session:"+sid));if(!code.equals(data.get("code"))) deny();return file(check(data),asset);
     }
     public void session(String code,String sid) { asset(code,sid,"index.html"); }
     Path file(Map<String,Object> g,String asset) {

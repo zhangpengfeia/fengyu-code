@@ -1,8 +1,6 @@
 package com.ruoyi.framework.aspectj;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
-import java.util.List;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
@@ -10,8 +8,6 @@ import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 import com.ruoyi.common.annotation.RateLimiter;
 import com.ruoyi.common.enums.LimitType;
@@ -30,21 +26,8 @@ public class RateLimiterAspect
 {
     private static final Logger log = LoggerFactory.getLogger(RateLimiterAspect.class);
 
-    private RedisTemplate<Object, Object> redisTemplate;
-
-    private RedisScript<Long> limitScript;
-
     @Autowired
-    public void setRedisTemplate1(RedisTemplate<Object, Object> redisTemplate)
-    {
-        this.redisTemplate = redisTemplate;
-    }
-
-    @Autowired
-    public void setLimitScript(RedisScript<Long> limitScript)
-    {
-        this.limitScript = limitScript;
-    }
+    private com.ruoyi.common.core.redis.RedisCache cache;
 
     @Before("@annotation(rateLimiter)")
     public void doBefore(JoinPoint point, RateLimiter rateLimiter) throws Throwable
@@ -53,10 +36,9 @@ public class RateLimiterAspect
         int count = rateLimiter.count();
 
         String combineKey = getCombineKey(rateLimiter, point);
-        List<Object> keys = Collections.singletonList(combineKey);
         try
         {
-            Long number = redisTemplate.execute(limitScript, keys, count, time);
+            Long number = cache.incrementWindow(combineKey, java.time.Duration.ofSeconds(time));
             if (StringUtils.isNull(number) || number.intValue() > count)
             {
                 throw new ServiceException("访问过于频繁，请稍候再试");

@@ -11,6 +11,8 @@ import { tansParams, blobValidate } from "@/utils/ruoyi";
 import cache from "@/plugins/cache";
 import { saveAs } from "file-saver";
 import useUserStore from "@/store/modules/user";
+import router from "@/router";
+import { redirectToPasswordChange } from "@/utils/password-navigation";
 
 let downloadLoadingInstance;
 // 是否显示重新登录
@@ -99,7 +101,7 @@ service.interceptors.request.use(
 
 // 响应拦截器
 service.interceptors.response.use(
-  (res) => {
+  async (res) => {
     // 未设置状态码则默认成功状态
     const code = res.data.code || 200;
     // 获取错误信息
@@ -111,7 +113,10 @@ service.interceptors.response.use(
     ) {
       return res.data;
     }
-    if (code === 401) {
+    if (code === 428) {
+      await redirectToPasswordChange(router, useUserStore());
+      return Promise.reject(new Error(msg));
+    } else if (code === 401) {
       if (!isRelogin.show) {
         isRelogin.show = true;
         ElMessageBox.confirm(
@@ -149,9 +154,12 @@ service.interceptors.response.use(
       return Promise.resolve(res.data);
     }
   },
-  (error) => {
+  async (error) => {
     const status = error.response?.status;
-    if (status === 428) location.href = "/education-security";
+    if (status === 428) {
+      await redirectToPasswordChange(router, useUserStore());
+      return Promise.reject(error);
+    }
     if (status === 401) {
       removeToken();
       location.href = "/login";

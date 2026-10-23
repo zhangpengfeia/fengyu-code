@@ -1,4 +1,8 @@
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driverClassName: org.h2.Driver
@@ -18,7 +22,9 @@ spring:
       mode: always
       schema-locations: classpath:db/development.sql
 education:
-  secure-game-cookie: false
+  cache:
+    type: memory
+  secure-game-cookie: ${EDU_SECURE_GAME_COOKIE:false}
 logging:
   level:
     com.ruoyi: info

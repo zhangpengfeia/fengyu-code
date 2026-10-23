@@ -34,16 +34,27 @@ education-admin/
 
 ## 本地开发
 
-需要 JDK 17、Node.js 20.19+ 或 22、Redis 7。未安装 Maven 时 `backend/mvnw` 可下载校验后的 Maven 3.9.9。H2 为一次性内存库，启动时按 MySQL 迁移生成的开发脚本初始化，停机即清空，不会创建或连接生产 MySQL。
+需要 JDK 17、Node.js 20.19+ 或 22。**当前开发和演示默认不需要 Redis 或 MySQL**：缓存使用单进程内存实现，业务数据使用 H2。Redis 接口及生产配置保留。未安装 Maven 时 `backend/mvnw` 可下载校验后的 Maven 3.9.9。H2 为一次性内存库，启动时按 MySQL 迁移生成的开发脚本初始化，停机即清空，不会创建或连接生产 MySQL。
 
-1. 启动仅监听本机的 Redis，设置 `REDIS_HOST`、`REDIS_PORT`、`REDIS_PASSWORD`（默认127.0.0.1:6379，无密码仅限受控本地环境）。
-2. 打包游戏：
+最快启动演示后端（内置 `admin / DemoAdmin!2026`，老师、学生、学校管理员密码均为 `DemoUser!2026`）：
+
+```sh
+cd education-admin
+./scripts/build-games.sh
+./scripts/run-demo.sh
+```
+
+另开终端执行下方前端启动命令，访问 `http://localhost:5173`。管理员首次登录须修改密码。默认验证码保留。你之前启动的旧版后端需要先按 Ctrl+C 停止，再使用新脚本启动；Redis 进程不再需要。
+
+如需自行设置演示密码，使用以下完整步骤：
+
+1. 进入项目目录并打包游戏：
 
 ```sh
 ./scripts/build-games.sh
 ```
 
-3. 启动后端。密码和密钥由你设置，下面为环境变量说明，不提供生产默认密码：
+2. 启动后端。密码和密钥由你设置，下面为环境变量说明，不提供生产默认密码：
 
 ```sh
 export EDU_ADMIN_PASSWORD='你设置的初始管理员密码'
@@ -55,7 +66,7 @@ export EDU_DEMO_PASSWORD='你设置的开发演示密码'
 
 首次管理员账号为 `admin`，首次登录必须修改初始密码。演示学生学校ID为11000、学号0001；仅开启 dev 演示数据时，手机号13800000001与13800000002分别用于老师、学生的模拟已验证号码，不用于生产。
 
-4. 在另一终端启动前端：
+3. 在另一终端启动前端：
 
 ```sh
 cd frontend
@@ -81,16 +92,38 @@ cd ..
 ./scripts/build-games.sh
 ```
 
-端到端脚本会修改并撤销**一次性dev数据**，只允许loopback目标且必须显式授权开发模式。使用Redis CLI读取测试验证码，不能指向生产：
+端到端脚本会修改并撤销**一次性 dev 数据**，只允许 loopback 目标且必须显式授权开发模式。内存模式下，先用测试参数启动一个全新的后端（关闭验证码只限本次自动验收；正常演示不要加此参数）：
 
 ```sh
-EDU_TEST_ADMIN_PASSWORD="$EDU_ADMIN_PASSWORD" \
-EDU_TEST_DEMO_PASSWORD="$EDU_DEMO_PASSWORD" \
-python3 scripts/smoke-test.py --allow-development \
-  --redis-cli /你的路径/redis-cli --redis-port "${REDIS_PORT:-6379}"
+./scripts/run-demo.sh --education.dev-captcha-enabled=false
 ```
 
+另一终端执行：
+
+```sh
+EDU_TEST_ADMIN_PASSWORD='DemoAdmin!2026' \
+EDU_TEST_DEMO_PASSWORD='DemoUser!2026' \
+python3 scripts/smoke-test.py --allow-development
+```
+
+Redis 模式仍可传 `--redis-cli /路径/redis-cli --redis-port 6379` 从受控本地 Redis 读取测试验证码，不要指向生产。
+
 该脚本会修改初始管理员密码、重置老师密码、撤销示例游戏授权并使示例学校到期。运行后重启H2开发后端恢复演示数据。结果与验证边界见 [docs/VALIDATION.md](docs/VALIDATION.md)。
+
+## 无外部数据库的演示部署
+
+提供 `deploy/compose.demo.yaml`，仅启动 API、管理前端和游戏网关三个服务，游戏在镜像中构建，无需服务器安装 Node.js、Redis 或 MySQL。需 Docker Compose。
+
+```sh
+cd education-admin
+cp deploy/demo.env.example deploy/.env.demo
+# 将 deploy/.env.demo 中 EDU_TOKEN_SECRET 替换为 openssl rand -hex 32 的输出
+# 公网演示还需填写两个独立的 HTTPS 域名，详见部署说明
+
+docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --build
+```
+
+本机访问 `http://localhost:18090`，游戏自动跳转至 `http://127.0.0.1:18091`。演示数据和会话在后端重启后清空并重新生成，只运行一个 API 实例。它是当前联调、演示用部署；正式业务保留 MySQL + Redis 部署配置。Redis 专用缓存监控在内存模式下不启用。
 
 ## MySQL 与部署
 

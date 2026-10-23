@@ -5,3 +5,7 @@
 **/.env
 **/*.log
 .git
+
+**/.env.*
+!frontend/.env.production
+**/dump.rdb

@@ -1,5 +1,37 @@
 # 部署与迁移
 
+## 当前先使用演示部署（不需要 Redis / MySQL）
+
+在 `education-admin` 目录执行：
+
+```sh
+cp deploy/demo.env.example deploy/.env.demo
+# 编辑 deploy/.env.demo：设置演示密码，并使用 openssl rand -hex 32 生成 EDU_TOKEN_SECRET
+docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --build
+```
+
+本机演示访问 `http://localhost:18090`，游戏地址为 `http://127.0.0.1:18091`。镜像自动构建现有星球游戏并打入 API；不需要先在服务器上运行 npm。默认保留验证码和首次强制改密。
+
+部署到已有 HTTPS 服务器时，在 `deploy/.env.demo` 设置：
+
+```dotenv
+EDU_ADMIN_ORIGIN=https://admin.example.com
+EDU_GAME_ORIGIN=https://games.example.com
+EDU_SECURE_GAME_COOKIE=true
+```
+
+将下面 Caddy 示例的两个域名分别代理到 18090 和 18091。默认端口只监听本机；远程联调可以用 SSH 转发这两个端口。不要仅使用同一个主机名的不同端口提供后台和游戏，Cookie 不按端口隔离。
+
+该配置使用 dev 演示数据、H2 内存库和本地缓存，仅一个 API 实例。后端重启会清空编辑内容、密码变更和全部会话，重新生成样例；Redis 专用监控接口不启用。测试数据包含示范学校、班级、老师、学生和资源授权。演示密码可通过环境变量更改。
+
+`education.yml` 新增无 Redis / MySQL 的容器构建启动及接口验收任务。正常部署不关闭验证码；CI 仅对一次性测试容器显式关闭验证码。当前本机没有运行 Docker daemon，因此容器部署结果仍需由该流水线或有 Docker 的服务器验证，不宣称已上线。
+
+## 正式数据库与缓存预留
+
+`dev` 配置固定使用内存缓存，且排除 Redis 自动配置，不尝试连接 Redis。正式 `education` 配置默认使用 `education.cache.type=redis`，由 `EDU_CACHE_TYPE` 选择，复用现有 RedisTemplate。验证码、登录、密码错误次数、请求限流、游戏单次票据和游戏会话均通过同一缓存门面访问，无需改业务接口。
+
+以下 `deploy/compose.yaml` 保留正式 MySQL + Redis 方案，当前演示无需执行。
+
 ## 独立部署
 
 本项目没有修改原星球项目的Compose项目名、镜像身份、服务器目录或GitHub Secrets。建议新目录 `/project/education-admin`、独立域名与独立数据卷。示例网关只绑定127.0.0.1的18090和18091端口，外部HTTPS由现有Caddy或受信任反向代理提供。

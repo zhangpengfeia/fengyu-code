@@ -1,0 +1,14 @@
+.git
+**/node_modules
+**/target
+**/dist
+**/.runtime
+**/.env
+**/.env.*
+!education-admin/frontend/.env.production
+**/*.log
+**/dump.rdb
+**/__pycache__
+docs
+education-admin/docs
+education-admin/games/planet/v*/

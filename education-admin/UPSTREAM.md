@@ -19,3 +19,9 @@
 - 前端扩展登录解析、初始密码路由限制、业务页面、首页与主题；菜单生成和权限指令沿用若依。
 
 仓库保留上游 README 和 LICENSE 便于追溯；实际运行使用本目录 README 与 sql/V001–V003，不要执行原始带 DROP 的上游 SQL。
+
+## 可选缓存接入
+
+`RedisCache` 保留若依现有调用门面，新增 `LocalCacheStore` 提供带过期时间的进程内快照、原子取出与计数。`dev` 不创建 Redis 连接；正式 Redis 模板、序列化器和环境变量继续保留。教育业务不再直接依赖 StringRedisTemplate，确保父登录会话与游戏票据使用相同后端。原生限流也走统一门面，Redis 专用监控只在 Redis 模式启用。字典缓存兼容内存 List 与 Redis JSON 数据。未有调用方使用的 `setCacheSet` 返回值改为 void，其写入语义保留。
+
+前端依赖锁文件下载地址改为官方 npm registry，保留版本和 integrity，避免依赖地区镜像影响海外构建。

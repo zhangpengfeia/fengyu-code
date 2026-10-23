@@ -19,5 +19,5 @@ selenium-debug.log
 *.sln
 *.local
 
-package-lock.json
+# Commit npm lockfile so CI and Docker can use npm ci.
 yarn.lock

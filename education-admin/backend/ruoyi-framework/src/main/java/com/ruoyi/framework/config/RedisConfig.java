@@ -15,6 +15,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  * @author ruoyi
  */
 @SuppressWarnings("deprecation")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="education.cache.type", havingValue="redis", matchIfMissing=true)
 @Configuration
 @EnableCaching
 public class RedisConfig extends CachingConfigurerSupport

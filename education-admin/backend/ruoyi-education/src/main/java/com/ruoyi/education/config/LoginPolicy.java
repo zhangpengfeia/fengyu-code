@@ -6,15 +6,15 @@ import com.ruoyi.education.domain.BizTable;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import java.util.Objects;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.ruoyi.common.core.redis.RedisCache;
 import java.time.Duration;
 
 @Component
 public class LoginPolicy {
-    final AccessService access; final BizMapper db; final StringRedisTemplate redis;
-    public LoginPolicy(AccessService access,BizMapper db,StringRedisTemplate redis) {this.access=access;this.db=db;this.redis=redis;}
+    final AccessService access; final BizMapper db; final RedisCache redis;
+    public LoginPolicy(AccessService access,BizMapper db,RedisCache redis) {this.access=access;this.db=db;this.redis=redis;}
     @EventListener public void validate(LoginUser user) {
         var fresh=access.active(user.getUserId());
-        redis.opsForValue().set("edu:credential:"+user.getToken(),fresh.getPassword(),Duration.ofMinutes(35));
+        redis.set("edu:credential:"+user.getToken(),fresh.getPassword(),Duration.ofMinutes(35));
     }
 }

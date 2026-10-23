@@ -1,268 +1,90 @@
 package com.ruoyi.common.core.redis;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.BoundSetOperations;
-import org.springframework.data.redis.core.HashOperations;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
+import jakarta.annotation.PreDestroy;
 
-/**
- * spring redis 工具类
- *
- * @author ruoyi
- **/
-@SuppressWarnings(value = { "unchecked", "rawtypes" })
+/** Compatibility facade: memory for standalone demos, Redis for shared multi-instance state. */
 @Component
-public class RedisCache
-{
-    @Autowired
-    public RedisTemplate redisTemplate;
-
-    /**
-     * 缓存基本的对象，Integer、String、实体类等
-     *
-     * @param key 缓存的键值
-     * @param value 缓存的值
-     */
-    public <T> void setCacheObject(final String key, final T value)
-    {
-        redisTemplate.opsForValue().set(key, value);
+@SuppressWarnings({"unchecked", "rawtypes"})
+public class RedisCache {
+    @Autowired(required = false) public RedisTemplate redisTemplate;
+    private final LocalCacheStore local;
+    public RedisCache(@Value("${education.cache.type:redis}") String type) {
+        if (!Set.of("memory", "redis").contains(type)) throw new IllegalArgumentException("education.cache.type must be memory or redis");
+        local = "memory".equals(type) ? new LocalCacheStore() : null;
     }
-
-    /**
-     * 缓存基本的对象，Integer、String、实体类等
-     *
-     * @param key 缓存的键值
-     * @param value 缓存的值
-     * @param timeout 时间
-     * @param timeUnit 时间颗粒度
-     */
-    public <T> void setCacheObject(final String key, final T value, final Integer timeout, final TimeUnit timeUnit)
-    {
-        redisTemplate.opsForValue().set(key, value, timeout, timeUnit);
+    public boolean isLocal() { return local != null; }
+    @PreDestroy public void close() { if (local != null) local.close(); }
+    public <T> void setCacheObject(String key, T value) {
+        if (isLocal()) local.put(key, value, -1); else redisTemplate.opsForValue().set(key, value);
     }
-
-    /**
-     * 设置有效时间
-     *
-     * @param key Redis键
-     * @param timeout 超时时间
-     * @return true=设置成功；false=设置失败
-     */
-    public boolean expire(final String key, final long timeout)
-    {
-        return expire(key, timeout, TimeUnit.SECONDS);
+    public <T> void setCacheObject(String key, T value, Integer timeout, TimeUnit unit) {
+        if (isLocal()) local.put(key, value, unit.toMillis(timeout)); else redisTemplate.opsForValue().set(key, value, timeout, unit);
     }
-
-    /**
-     * 设置有效时间
-     *
-     * @param key Redis键
-     * @param timeout 超时时间
-     * @param unit 时间单位
-     * @return true=设置成功；false=设置失败
-     */
-    public boolean expire(final String key, final long timeout, final TimeUnit unit)
-    {
-        return redisTemplate.expire(key, timeout, unit);
+    public <T> void set(String key, T value, Duration ttl) {
+        if (isLocal()) local.put(key, value, ttl.toMillis()); else redisTemplate.opsForValue().set(key, value, ttl);
     }
-
-    /**
-     * 获取有效时间
-     *
-     * @param key Redis键
-     * @return 有效时间
-     */
-    public long getExpire(final String key)
-    {
-        return redisTemplate.getExpire(key);
+    public boolean expire(String key, long timeout) { return expire(key, timeout, TimeUnit.SECONDS); }
+    public boolean expire(String key, Duration ttl) { return expire(key, ttl.toMillis(), TimeUnit.MILLISECONDS); }
+    public boolean expire(String key, long timeout, TimeUnit unit) {
+        return isLocal() ? local.expire(key, unit.toMillis(timeout)) : Boolean.TRUE.equals(redisTemplate.expire(key, timeout, unit));
     }
-
-    /**
-     * 判断 key是否存在
-     *
-     * @param key 键
-     * @return true 存在 false不存在
-     */
-    public Boolean hasKey(String key)
-    {
-        return redisTemplate.hasKey(key);
+    public long getExpire(String key) { return isLocal() ? local.ttl(key) : redisTemplate.getExpire(key); }
+    public Boolean hasKey(String key) { return isLocal() ? local.has(key) : redisTemplate.hasKey(key); }
+    public <T> T getCacheObject(String key) { return isLocal() ? local.get(key) : (T) redisTemplate.opsForValue().get(key); }
+    public <T> T getAndDelete(String key) { return isLocal() ? local.take(key) : (T) redisTemplate.opsForValue().getAndDelete(key); }
+    public boolean deleteObject(String key) { return isLocal() ? local.delete(key) : Boolean.TRUE.equals(redisTemplate.delete(key)); }
+    public boolean deleteObject(Collection keys) {
+        if (!isLocal()) return redisTemplate.delete(keys) > 0;
+        boolean any = false; for (Object key : keys) any |= local.delete(String.valueOf(key)); return any;
     }
-
-    /**
-     * 获得缓存的基本对象。
-     *
-     * @param key 缓存键值
-     * @return 缓存键值对应的数据
-     */
-    public <T> T getCacheObject(final String key)
-    {
-        ValueOperations<String, T> operation = redisTemplate.opsForValue();
-        return operation.get(key);
+    public long incrementWindow(String key, Duration ttl) {
+        if (isLocal()) return local.incrementWindow(key, ttl.toMillis());
+        // Atomic first expiry avoids immortal rate-limit keys if the client disconnects.
+        var script = new DefaultRedisScript<Long>("local n=redis.call('incr',KEYS[1]); if n==1 then redis.call('pexpire',KEYS[1],ARGV[1]); end; return n", Long.class);
+        return ((Number) redisTemplate.execute(script, List.of(key), ttl.toMillis())).longValue();
     }
-
-    /**
-     * 删除单个对象
-     *
-     * @param key
-     */
-    public boolean deleteObject(final String key)
-    {
-        return redisTemplate.delete(key);
+    public synchronized <T> long setCacheList(String key, List<T> values) {
+        if (!isLocal()) { Long n=redisTemplate.opsForList().rightPushAll(key, values); return n == null ? 0 : n; }
+        List<T> list = getCacheList(key); list.addAll(values); local.put(key, list, -1); return list.size();
     }
-
-    /**
-     * 删除集合对象
-     *
-     * @param collection 多个对象
-     * @return
-     */
-    public boolean deleteObject(final Collection collection)
-    {
-        return redisTemplate.delete(collection) > 0;
+    public <T> List<T> getCacheList(String key) {
+        if (!isLocal()) return redisTemplate.opsForList().range(key, 0, -1);
+        List<T> value=local.get(key); return value == null ? new ArrayList<>() : value;
     }
-
-    /**
-     * 缓存List数据
-     *
-     * @param key 缓存的键值
-     * @param dataList 待缓存的List数据
-     * @return 缓存的对象
-     */
-    public <T> long setCacheList(final String key, final List<T> dataList)
-    {
-        Long count = redisTemplate.opsForList().rightPushAll(key, dataList);
-        return count == null ? 0 : count;
+    public synchronized <T> void setCacheSet(String key, Set<T> values) {
+        if (!isLocal()) { for (T value : values) redisTemplate.opsForSet().add(key, value); return; }
+        Set<T> set=getCacheSet(key); set.addAll(values); local.put(key, set, -1);
     }
-
-    /**
-     * 获得缓存的list对象
-     *
-     * @param key 缓存的键值
-     * @return 缓存键值对应的数据
-     */
-    public <T> List<T> getCacheList(final String key)
-    {
-        return redisTemplate.opsForList().range(key, 0, -1);
+    public <T> Set<T> getCacheSet(String key) {
+        if (!isLocal()) return redisTemplate.opsForSet().members(key);
+        Set<T> value=local.get(key); return value == null ? new HashSet<>() : value;
     }
-
-    /**
-     * 缓存Set
-     *
-     * @param key 缓存键值
-     * @param dataSet 缓存的数据
-     * @return 缓存数据的对象
-     */
-    public <T> BoundSetOperations<String, T> setCacheSet(final String key, final Set<T> dataSet)
-    {
-        BoundSetOperations<String, T> setOperation = redisTemplate.boundSetOps(key);
-        Iterator<T> it = dataSet.iterator();
-        while (it.hasNext())
-        {
-            setOperation.add(it.next());
-        }
-        return setOperation;
+    public synchronized <T> void setCacheMap(String key, Map<String,T> values) {
+        if (values == null) return;
+        if (!isLocal()) { redisTemplate.opsForHash().putAll(key, values); return; }
+        Map<String,T> map=getCacheMap(key); map.putAll(values); local.put(key, map, -1);
     }
-
-    /**
-     * 获得缓存的set
-     *
-     * @param key
-     * @return
-     */
-    public <T> Set<T> getCacheSet(final String key)
-    {
-        return redisTemplate.opsForSet().members(key);
+    public <T> Map<String,T> getCacheMap(String key) {
+        if (!isLocal()) return redisTemplate.opsForHash().entries(key);
+        Map<String,T> value=local.get(key); return value == null ? new HashMap<>() : value;
     }
-
-    /**
-     * 缓存Map
-     *
-     * @param key
-     * @param dataMap
-     */
-    public <T> void setCacheMap(final String key, final Map<String, T> dataMap)
-    {
-        if (dataMap != null) {
-            redisTemplate.opsForHash().putAll(key, dataMap);
-        }
+    public <T> void setCacheMapValue(String key, String field, T value) { setCacheMap(key, Collections.singletonMap(field,value)); }
+    public <T> T getCacheMapValue(String key, String field) { return isLocal() ? (T) getCacheMap(key).get(field) : (T) redisTemplate.opsForHash().get(key,field); }
+    public <T> List<T> getMultiCacheMapValue(String key, Collection<Object> fields) {
+        if (!isLocal()) return redisTemplate.opsForHash().multiGet(key, fields);
+        Map<String,T> map=getCacheMap(key); List<T> result=new ArrayList<>(); for(Object field:fields) result.add(map.get(field)); return result;
     }
-
-    /**
-     * 获得缓存的Map
-     *
-     * @param key
-     * @return
-     */
-    public <T> Map<String, T> getCacheMap(final String key)
-    {
-        return redisTemplate.opsForHash().entries(key);
+    public synchronized boolean deleteCacheMapValue(String key, String field) {
+        if (!isLocal()) return redisTemplate.opsForHash().delete(key,field)>0;
+        Map<String,Object> map=getCacheMap(key); boolean found=map.containsKey(field); map.remove(field); local.put(key,map,-1); return found;
     }
-
-    /**
-     * 往Hash中存入数据
-     *
-     * @param key Redis键
-     * @param hKey Hash键
-     * @param value 值
-     */
-    public <T> void setCacheMapValue(final String key, final String hKey, final T value)
-    {
-        redisTemplate.opsForHash().put(key, hKey, value);
-    }
-
-    /**
-     * 获取Hash中的数据
-     *
-     * @param key Redis键
-     * @param hKey Hash键
-     * @return Hash中的对象
-     */
-    public <T> T getCacheMapValue(final String key, final String hKey)
-    {
-        HashOperations<String, String, T> opsForHash = redisTemplate.opsForHash();
-        return opsForHash.get(key, hKey);
-    }
-
-    /**
-     * 获取多个Hash中的数据
-     *
-     * @param key Redis键
-     * @param hKeys Hash键集合
-     * @return Hash对象集合
-     */
-    public <T> List<T> getMultiCacheMapValue(final String key, final Collection<Object> hKeys)
-    {
-        return redisTemplate.opsForHash().multiGet(key, hKeys);
-    }
-
-    /**
-     * 删除Hash中的某条数据
-     *
-     * @param key Redis键
-     * @param hKey Hash键
-     * @return 是否成功
-     */
-    public boolean deleteCacheMapValue(final String key, final String hKey)
-    {
-        return redisTemplate.opsForHash().delete(key, hKey) > 0;
-    }
-
-    /**
-     * 获得缓存的基本对象列表
-     *
-     * @param pattern 字符串前缀
-     * @return 对象列表
-     */
-    public Collection<String> keys(final String pattern)
-    {
-        return redisTemplate.keys(pattern);
-    }
+    public Collection<String> keys(String pattern) { return isLocal() ? local.keys(pattern) : redisTemplate.keys(pattern); }
 }

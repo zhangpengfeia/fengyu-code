@@ -20,3 +20,6 @@ education-admin/backend/**/logs/
 !education-admin/frontend/.env.development
 !education-admin/frontend/.env.production
 !education-admin/frontend/.env.staging
+
+# Redis local artifacts are never application fixtures
+**/dump.rdb

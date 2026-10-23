@@ -9,7 +9,7 @@ permissions:
   contents: read
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       mysql:
         image: mysql:8.0
@@ -20,13 +20,13 @@ jobs:
           --health-cmd="mysqladmin ping -peducation-ci-disposable"
           --health-interval=5s --health-retries=30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: npm
@@ -47,8 +47,52 @@ jobs:
         working-directory: education-admin/frontend
         run: |
           npm ci
+          node --test tests/*.test.js
           npm run build
       - name: Package protected planet game
         run: |
           npm ci --prefix gamesoptionproject
           education-admin/scripts/build-games.sh
+
+  demo-deployment:
+    needs: build-and-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      EDU_ADMIN_PASSWORD: DisposableCiAdmin!2026
+      EDU_DEMO_PASSWORD: DisposableCiUser!2026
+      EDU_TOKEN_SECRET: disposable-ci-memory-token-key-1234567890
+    steps:
+      - uses: actions/checkout@v6
+      - name: Configure disposable demo test ports
+        run: |
+          cat > /tmp/education-ci-override.yaml <<'YAML'
+          services:
+            education-api:
+              ports: ["127.0.0.1:18082:8081"]
+              # Only this disposable CI instance disables captcha for HTTP tests.
+              command: ["--education.dev-captcha-enabled=false"]
+          YAML
+      - name: Build and start demo without Redis or MySQL
+        run: docker compose -f education-admin/deploy/compose.demo.yaml -f /tmp/education-ci-override.yaml up -d --build
+      - name: Wait for demo backend
+        run: |
+          for attempt in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:18082/captchaImage > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Verify demo web and permission flows
+        env:
+          EDU_TEST_ADMIN_PASSWORD: ${{ env.EDU_ADMIN_PASSWORD }}
+          EDU_TEST_DEMO_PASSWORD: ${{ env.EDU_DEMO_PASSWORD }}
+        run: |
+          curl -fsS http://localhost:18090/ > /dev/null
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18091/play/planet/index.html)" = 403
+          python3 education-admin/scripts/smoke-test.py --allow-development --base http://127.0.0.1:18082
+      - name: Show demo logs on failure
+        if: failure()
+        run: docker compose -f education-admin/deploy/compose.demo.yaml -f /tmp/education-ci-override.yaml logs --tail=150
+      - name: Stop disposable demo
+        if: always()
+        run: docker compose -f education-admin/deploy/compose.demo.yaml -f /tmp/education-ci-override.yaml down --volumes

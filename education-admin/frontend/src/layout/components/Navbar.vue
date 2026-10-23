@@ -34,7 +34,7 @@
         </el-tooltip>
 
         <el-tooltip content="消息通知" effect="dark" placement="bottom">
-          <header-notice id="header-notice" class="right-menu-item hover-effect" />
+          <header-notice v-if="!userStore.mustChangePwd" id="header-notice" class="right-menu-item hover-effect" />
         </el-tooltip>
       </template>
 

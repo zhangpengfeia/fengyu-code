@@ -27,6 +27,7 @@ import com.ruoyi.system.domain.SysCache;
  * 
  * @author ruoyi
  */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name="education.cache.type", havingValue="redis", matchIfMissing=true)
 @RestController
 @RequestMapping("/monitor/cache")
 public class CacheController

@@ -5,7 +5,7 @@ import com.ruoyi.education.mapper.BizMapper;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.exception.ServiceException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.data.redis.core.*;
+import com.ruoyi.common.core.redis.RedisCache;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,18 +15,18 @@ import java.util.*;
 
 class GameGatewayTest {
     @TempDir Path root;
-    GameService games;BizMapper db;AccessService access;StringRedisTemplate redis;ValueOperations<String,String> values;
+    GameService games;BizMapper db;AccessService access;RedisCache redis;
     final String sid="a".repeat(43),ticket="b".repeat(43);
     Map<String,Object> game;
     @SuppressWarnings("unchecked") @BeforeEach void setup() throws Exception {
-        db=mock(BizMapper.class);access=mock(AccessService.class);redis=mock(StringRedisTemplate.class);values=mock(ValueOperations.class);when(redis.opsForValue()).thenReturn(values);
+        db=mock(BizMapper.class);access=mock(AccessService.class);redis=mock(RedisCache.class);
         games=new GameService(db,access,mock(CatalogService.class),redis,new ObjectMapper(),root.toString(),"http://127.0.0.1:8081");
         var u=new SysUser(20001L);u.setPassword("hash");when(access.active(20001)).thenReturn(u);when(access.game(any(),any())).thenReturn(true);
         when(access.permits(any(),eq("biz:game:preview"))).thenReturn(true);
         game=Map.of("game_id",1L,"game_code","planet","version_no","v1","status","PUBLISHED");when(db.one(BizTable.GAME,1)).thenReturn(game);
         when(redis.hasKey("login_tokens:parent")).thenReturn(true);
         var data=new ObjectMapper().writeValueAsString(Map.of("uid",20001,"gid",1,"code","planet","passwordHash","hash","parentToken","parent"));
-        when(values.get("edu:game-session:"+sid)).thenReturn(data);when(values.getAndDelete("edu:ticket:"+ticket)).thenReturn(data,null);
+        when(redis.<String>getCacheObject("edu:game-session:"+sid)).thenReturn(data);when(redis.<String>getAndDelete("edu:ticket:"+ticket)).thenReturn(data,(String)null);
         Files.createDirectories(root.resolve("planet/v1"));Files.writeString(root.resolve("planet/v1/index.html"),"protected");
     }
     @Test void ticketExchangeIsSingleUse() {assertEquals(43,games.exchange("planet",ticket).length());assertThrows(ServiceException.class,()->games.exchange("planet",ticket));}
