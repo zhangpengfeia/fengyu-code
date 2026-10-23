@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+set -eu
+if command -v mvn >/dev/null 2>&1; then exec mvn "$@"; fi
+EDU_BACKEND=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+EDU_CACHE="$EDU_BACKEND/../.runtime/maven"
+EDU_MAVEN_VERSION=3.9.9
+EDU_MAVEN="$EDU_CACHE/apache-maven-$EDU_MAVEN_VERSION"
+if [ ! -x "$EDU_MAVEN/bin/mvn" ]; then
+  mkdir -p "$EDU_CACHE"
+  EDU_ARCHIVE="apache-maven-$EDU_MAVEN_VERSION-bin.tar.gz"
+  EDU_URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$EDU_MAVEN_VERSION/$EDU_ARCHIVE"
+  curl -fL "$EDU_URL" -o "$EDU_CACHE/$EDU_ARCHIVE"
+  curl -fL "$EDU_URL.sha512" -o "$EDU_CACHE/checksum.txt"
+  EDU_EXPECTED=$(cut -d ' ' -f 1 "$EDU_CACHE/checksum.txt")
+  EDU_ACTUAL=$(shasum -a 512 "$EDU_CACHE/$EDU_ARCHIVE" | cut -d ' ' -f 1)
+  [ "$EDU_EXPECTED" = "$EDU_ACTUAL" ] || { echo 'Maven checksum mismatch' >&2; exit 1; }
+  tar -xzf "$EDU_CACHE/$EDU_ARCHIVE" -C "$EDU_CACHE"
+fi
+exec "$EDU_MAVEN/bin/mvn" "$@"

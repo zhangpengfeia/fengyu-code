@@ -1,0 +1,195 @@
+.education-page {
+  background: #f4f7fb;
+  min-height: calc(100vh - 90px);
+  padding: 28px 30px;
+  color: #26364d;
+}
+.edu-page-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 26px;
+}
+.edu-page-heading h1 {
+  font-size: 25px;
+  font-weight: 600;
+  margin: 9px 0 12px;
+}
+.edu-page-heading p {
+  font-size: 13px;
+  color: #8390a2;
+  margin: 0;
+  line-height: 1.8;
+}
+.edu-eyebrow {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #7186a2;
+}
+.edu-card {
+  border-color: #e5ebf3;
+  border-radius: 8px;
+}
+.edu-card > .el-card__body {
+  padding: 23px;
+}
+.edu-card .el-form--inline .el-form-item {
+  margin-bottom: 20px;
+}
+.edu-table-caption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #f0f3f7;
+  padding: 20px 0;
+}
+.edu-table-caption > b {
+  font-size: 15px;
+}
+.edu-table-caption > span {
+  font-size: 12px;
+  color: #8d99ab;
+  flex: 1;
+}
+.edu-card .el-table th.el-table__cell {
+  background: #f6f8fc;
+  color: #68778e;
+  font-weight: 500;
+}
+.edu-card .el-table .el-table__cell {
+  padding: 15px 0;
+}
+.edu-resource-cell {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+.edu-resource-cell b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #263c5b;
+}
+.edu-resource-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 23px;
+  background: #ebf2ff;
+  color: #5c86d7;
+  flex: none;
+}
+.edu-resource-icon.courseware {
+  background: #e9f7f3;
+  color: #5aa58a;
+}
+.edu-muted {
+  font-size: 11px;
+  color: #98a3b3;
+  margin-top: 5px;
+  max-width: 270px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.edu-field-hint {
+  font-size: 11px;
+  color: #8995a8;
+  line-height: 1.7;
+  margin-top: 6px;
+}
+.edu-gap {
+  margin-top: 24px;
+}
+.edu-preview-heading {
+  padding: 22px;
+  border-radius: 8px;
+  background: #eff5ff;
+  color: #2c578f;
+}
+.edu-preview-heading > span {
+  font-size: 12px;
+}
+.edu-welcome {
+  padding: 35px 40px;
+  background: #eaf1fc;
+  border: 1px solid #e0e9f7;
+  border-radius: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.edu-welcome h1 {
+  font-size: 28px;
+  font-weight: 600;
+}
+.edu-welcome p {
+  color: #7a8da8;
+  font-size: 14px;
+}
+.welcome-orbit {
+  font-size: 125px;
+  color: #abc3ed;
+  margin-right: 35px;
+}
+.edu-entry {
+  border: 1px solid #e4eaf3;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+.edu-entry h2 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.edu-entry p {
+  color: #8a97a8;
+  font-size: 13px;
+  line-height: 1.9;
+  min-height: 50px;
+}
+.entry-symbol {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  border-radius: 12px;
+  margin: 10px 0 22px;
+}
+.entry-symbol.blue {
+  background: #ebf2ff;
+  color: #5884d4;
+}
+.entry-symbol.green {
+  background: #e9f8f1;
+  color: #48a480;
+}
+.entry-symbol.purple {
+  background: #f1edff;
+  color: #9276d8;
+}
+@media (max-width: 768px) {
+  .education-page {
+    padding: 20px 15px;
+  }
+  .edu-page-heading {
+    align-items: flex-start;
+  }
+  .edu-welcome {
+    padding: 25px;
+  }
+  .welcome-orbit {
+    display: none;
+  }
+  .edu-page-heading h1 {
+    font-size: 22px;
+  }
+  .edu-card > .el-card__body {
+    padding: 15px;
+  }
+}

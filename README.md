@@ -59,3 +59,7 @@ GitHub Actions 保留在仓库根目录，工作目录、npm 缓存锁文件和 
 在仓库根目录新增同级项目文件夹，各自维护依赖、锁文件、构建产物和部署文件。为新项目在 `.github/workflows/` 创建独立工作流，设置对应目录的路径过滤、工作目录、缓存锁文件和 Docker 上下文。
 
 独立部署的新项目应使用自己的服务器目录、Compose 项目名、网络别名、宿主机端口、域名、镜像名和并发分组，避免覆盖星球项目。不要给新项目复用 `/project/fengyucode` 或 `fengyucode-web` 服务身份。修改其他项目不会触发当前星球项目的流水线。
+
+## 智慧教育后台
+
+新增独立项目 [education-admin](education-admin/README.md)，按优化需求说明书 V1.1 实现第一期：若依 Vue3、Spring Boot 3、MySQL SQL、课件游戏目录、学校账号与 RBAC 及游戏入口鉴权。前后端、SQL、游戏和部署目录分别独立维护。原星球项目已增加教育平台访问保护，迁移方式见 [教育平台部署说明](education-admin/docs/DEPLOYMENT.md)。

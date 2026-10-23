@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: org.h2.Driver
+    druid:
+      master:
+        driverClassName: org.h2.Driver
+        url: jdbc:h2:mem:education;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1;NON_KEYWORDS=VALUE,KEY
+        username: sa
+        password:
+      initialSize: 1
+      minIdle: 1
+      validationQuery: SELECT 1
+      statViewServlet:
+        enabled: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/development.sql
+education:
+  secure-game-cookie: false
+logging:
+  level:
+    com.ruoyi: info

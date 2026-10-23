@@ -1,0 +1,11 @@
+FROM maven:3.9.9-eclipse-temurin-17 AS build
+WORKDIR /src
+COPY backend/ ./
+RUN mvn -B -ntp -DskipTests package
+FROM eclipse-temurin:17-jre
+WORKDIR /app
+RUN groupadd --system education && useradd --system --gid education --home-dir /app education && mkdir -p /app/.runtime && chown -R education:education /app
+COPY --from=build /src/ruoyi-admin/target/ruoyi-admin.jar /app/app.jar
+USER education
+EXPOSE 8081
+ENTRYPOINT ["java","-jar","/app/app.jar"]

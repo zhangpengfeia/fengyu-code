@@ -1,0 +1,54 @@
+name: Education platform checks
+on:
+  pull_request:
+    paths: ['education-admin/**', 'gamesoptionproject/**', '.github/workflows/education.yml']
+  push:
+    paths: ['education-admin/**', 'gamesoptionproject/**', '.github/workflows/education.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: education-ci-disposable
+          MYSQL_DATABASE: education
+        options: >-
+          --health-cmd="mysqladmin ping -peducation-ci-disposable"
+          --health-interval=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            education-admin/frontend/package-lock.json
+            gamesoptionproject/package-lock.json
+      - name: Validate fresh MySQL schema
+        env:
+          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
+        run: |
+          for migration in education-admin/sql/V*.sql; do
+            docker exec -i -e MYSQL_PWD=education-ci-disposable "$MYSQL_CONTAINER" mysql -uroot education < "$migration"
+          done
+      - name: Java permission and persistence tests
+        working-directory: education-admin/backend
+        run: mvn -B -ntp test package
+      - name: Frontend build
+        working-directory: education-admin/frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Package protected planet game
+        run: |
+          npm ci --prefix gamesoptionproject
+          education-admin/scripts/build-games.sh

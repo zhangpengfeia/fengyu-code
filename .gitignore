@@ -9,3 +9,14 @@ dist/
 *.pem
 *.key
 __pycache__/
+
+target/
+*.log
+*.pid
+education-admin/games/planet/v*/
+education-admin/.runtime/
+education-admin/backend/**/logs/
+
+!education-admin/frontend/.env.development
+!education-admin/frontend/.env.production
+!education-admin/frontend/.env.staging

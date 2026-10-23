@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    druid:
+      master:
+        url: ${EDU_DB_URL:jdbc:mysql://127.0.0.1:3306/education?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&useSSL=false}
+        username: ${EDU_DB_USER:education}
+        password: ${EDU_DB_PASSWORD}
+      initialSize: 1
+      minIdle: 1
+      maxActive: 20
+      validationQuery: SELECT 1
+      statViewServlet:
+        enabled: false
+      webStatFilter:
+        enabled: false
+logging:
+  level:
+    com.ruoyi: info
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
