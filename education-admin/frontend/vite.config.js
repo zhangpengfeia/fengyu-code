@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import path from "path";
 import createVitePlugins from "./vite/plugins";
 
-const baseUrl = "http://localhost:8081"; // 后端接口
+const baseUrl = process.env.EDU_API_PROXY_TARGET || "http://localhost:8081"; // 后端接口
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode, command }) => {
@@ -46,6 +46,11 @@ export default defineConfig(({ mode, command }) => {
       host: "127.0.0.1",
       open: false,
       proxy: {
+        // Keep local previews on the same origin as the administration UI.
+        "/play/": {
+          target: baseUrl,
+          changeOrigin: true,
+        },
         // https://cn.vitejs.dev/config/#server-proxy
         "/dev-api": {
           target: baseUrl,

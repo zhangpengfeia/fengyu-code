@@ -42,8 +42,8 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       EDU_TOKEN_SECRET: ${EDU_TOKEN_SECRET:?set EDU_TOKEN_SECRET}
       EDU_ADMIN_PASSWORD: ${EDU_ADMIN_PASSWORD:?set EDU_ADMIN_PASSWORD}
-      EDU_ADMIN_ORIGIN: ${EDU_ADMIN_ORIGIN:?set HTTPS administration hostname}
-      EDU_GAME_ORIGIN: ${EDU_GAME_ORIGIN:?set distinct HTTPS game hostname}
+      EDU_ADMIN_ORIGIN: ${EDU_ADMIN_ORIGIN:-https://fengyucode.zhangff.cn}
+      EDU_GAME_ORIGIN: ${EDU_GAME_ORIGIN:-https://fengyucode.zhangff.cn}
       EDU_GAMES_ROOT: /games
       EDU_SECURE_GAME_COOKIE: ${EDU_SECURE_GAME_COOKIE:-true}
       EDU_EXTERNAL_HOSTS: ${EDU_EXTERNAL_HOSTS:-}
@@ -61,12 +61,7 @@ services:
     ports: ["127.0.0.1:${EDU_PORT:-18090}:80"]
     depends_on: [education-api]
     restart: unless-stopped
-  games-web:
-    image: nginx:1.28-alpine
-    volumes: ["./nginx.games.conf:/etc/nginx/conf.d/default.conf:ro"]
-    ports: ["127.0.0.1:${EDU_GAME_PORT:-18091}:80"]
-    depends_on: [education-api]
-    restart: unless-stopped
+
 volumes:
   education-db:
   education-redis:

@@ -11,7 +11,7 @@ services:
       EDU_DEMO_PASSWORD: ${EDU_DEMO_PASSWORD:?set demo teacher/student password}
       EDU_TOKEN_SECRET: ${EDU_TOKEN_SECRET:?set random token secret}
       EDU_ADMIN_ORIGIN: ${EDU_ADMIN_ORIGIN:-http://localhost:18090}
-      EDU_GAME_ORIGIN: ${EDU_GAME_ORIGIN:-http://127.0.0.1:18091}
+      EDU_GAME_ORIGIN: ${EDU_GAME_ORIGIN:-http://localhost:18090}
       EDU_SECURE_GAME_COOKIE: ${EDU_SECURE_GAME_COOKIE:-false}
       EDU_GAMES_ROOT: /games
     restart: unless-stopped
@@ -20,11 +20,5 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile.web
     ports: ["${EDU_BIND_ADDRESS:-127.0.0.1}:${EDU_PORT:-18090}:80"]
-    depends_on: [education-api]
-    restart: unless-stopped
-  games-web:
-    image: nginx:1.28-alpine
-    volumes: ["./nginx.games.conf:/etc/nginx/conf.d/default.conf:ro"]
-    ports: ["${EDU_BIND_ADDRESS:-127.0.0.1}:${EDU_GAME_PORT:-18091}:80"]
     depends_on: [education-api]
     restart: unless-stopped

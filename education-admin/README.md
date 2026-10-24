@@ -74,7 +74,7 @@ npm ci
 npm run dev
 ```
 
-浏览器访问 [http://localhost:5173](http://localhost:5173)。API 为8081。开发游戏来源为 [http://127.0.0.1:8081](http://127.0.0.1:8081)，因此**管理端使用localhost，游戏使用127.0.0.1**，使游戏代码不能读取管理端登录Cookie。不要把管理端也改用127.0.0.1测试隔离。
+浏览器访问 [http://localhost:5173](http://localhost:5173)。API 为8081。游戏预览也使用 `http://localhost:5173/play/游戏编码/`，由 Vite 代理到后端鉴权；后台与可信内部游戏使用同一域名。
 
 正常开发默认保留验证码。自动UI测试如需关闭，仅在dev环境显式添加 `--education.dev-captcha-enabled=false`，不得用于生产。dev模拟短信码会显示在账号安全页；生产未配置真实短信适配器时拒绝发送和验证，不把管理员录入的未验证号码当成手机号登录凭据。
 
@@ -112,18 +112,24 @@ Redis 模式仍可传 `--redis-cli /路径/redis-cli --redis-port 6379` 从受�
 
 ## 无外部数据库的演示部署
 
-提供 `deploy/compose.demo.yaml`，仅启动 API、管理前端和游戏网关三个服务，游戏在镜像中构建，无需服务器安装 Node.js、Redis 或 MySQL。需 Docker Compose。
+提供 `deploy/compose.demo.yaml`，仅启动 API 和统一网站网关两个服务，游戏在镜像中构建，无需服务器安装 Node.js、Redis 或 MySQL。需 Docker Compose。
 
 ```sh
 cd education-admin
 cp deploy/demo.env.example deploy/.env.demo
 # 将 deploy/.env.demo 中 EDU_TOKEN_SECRET 替换为 openssl rand -hex 32 的输出
-# 公网演示还需填写两个独立的 HTTPS 域名，详见部署说明
+# 公网演示将后台和游戏来源均设为 https://fengyucode.zhangff.cn，详见部署说明
 
 docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --build
 ```
 
-本机访问 `http://localhost:18090`，游戏自动跳转至 `http://127.0.0.1:18091`。演示数据和会话在后端重启后清空并重新生成，只运行一个 API 实例。它是当前联调、演示用部署；正式业务保留 MySQL + Redis 部署配置。Redis 专用缓存监控在内存模式下不启用。
+本机访问 `http://localhost:18090`，游戏自动跳转至同站点的 `/play/游戏编码/`。演示数据和会话在后端重启后清空并重新生成，只运行一个 API 实例。它是当前联调、演示用部署；正式业务保留 MySQL + Redis 部署配置。Redis 专用缓存监控在内存模式下不启用。
+
+## 域名与游戏路径
+
+目标部署域名统一为 `https://fengyucode.zhangff.cn`：后台在 `/`，星球游戏在 `/play/planet/index.html`，其他内部游戏在 `/play/游戏编码/`。配置 `EDU_ADMIN_ORIGIN` 和 `EDU_GAME_ORIGIN` 为相同来源。游戏链接与全部静态资源继续由后端鉴权，学生访问未授权游戏返回 403。
+
+同源游戏代码与后台共享浏览器安全边界，内部目录仅部署可信代码；外部第三方游戏继续使用白名单外链，不把未经审核的第三方 HTML 复制到内部目录。原域名根路径的星球游戏入口会由后台替代，部署前需要切换原反向代理；当前代码修改并不代表线上站点已切换。
 
 ## MySQL 与部署
 

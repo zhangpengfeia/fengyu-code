@@ -17,7 +17,7 @@ import static com.ruoyi.education.service.AccessService.*;
 public class GameService {
     final BizMapper db;final AccessService access;final CatalogService catalog;final RedisCache redis;final ObjectMapper json;
     final Path root; final String origin;
-    public GameService(BizMapper db,AccessService a,CatalogService c,RedisCache redis,ObjectMapper json,@Value("${education.games-root:../games}") String root,@Value("${education.game-origin:http://127.0.0.1:8081}") String origin) {
+    public GameService(BizMapper db,AccessService a,CatalogService c,RedisCache redis,ObjectMapper json,@Value("${education.games-root:../games}") String root,@Value("${education.game-origin:http://localhost:5173}") String origin) {
         this.db=db;access=a;catalog=c;this.redis=redis;this.json=json;this.root=Path.of(root).toAbsolutePath().normalize();this.origin=origin.replaceAll("/$","");
     }
     static String random() {byte[] bytes=new byte[32];new SecureRandom().nextBytes(bytes);return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);}

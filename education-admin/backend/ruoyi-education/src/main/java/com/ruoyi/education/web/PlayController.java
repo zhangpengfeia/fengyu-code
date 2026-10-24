@@ -21,7 +21,7 @@ public class PlayController {
     @Anonymous @GetMapping("/play/{code}/exchange")
     public ResponseEntity<Void> exchange(@PathVariable String code,@RequestParam String ticket) {
         String sid=games.exchange(code,ticket);
-        // Lax permits the explicit top-level redirect from the separate admin site.
+        // Lax supports the top-level ticket exchange, including optional separate-origin deployments.
         var cookie=ResponseCookie.from("EDU_GAME",sid).httpOnly(true).secure(secure).sameSite("Lax").path("/play/"+code+"/").maxAge(1800).build();
         return ResponseEntity.status(303).header("Set-Cookie",cookie.toString()).header("Location","/play/"+code+"/index.html").header("Referrer-Policy","no-referrer").cacheControl(CacheControl.noStore()).build();
     }

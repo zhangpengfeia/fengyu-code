@@ -5,7 +5,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import java.net.URI;
 
-/** Fail closed when production cookies would be shared with untrusted game code. */
+/** Same-origin deployment is supported for trusted internal games; production still requires HTTPS. */
 @Component @Order(-100)
 public class GameOriginPolicy implements ApplicationRunner {
     final Environment env;
@@ -14,7 +14,12 @@ public class GameOriginPolicy implements ApplicationRunner {
         if(env.matchesProfiles("dev"))return;
         URI admin=URI.create(env.getRequiredProperty("education.admin-origin"));
         URI game=URI.create(env.getRequiredProperty("education.game-origin"));
-        if(!"https".equals(admin.getScheme())||!"https".equals(game.getScheme())||admin.getHost()==null||game.getHost()==null||admin.getHost().equalsIgnoreCase(game.getHost())||!env.getProperty("education.secure-game-cookie",Boolean.class,true))
-            throw new IllegalStateException("Production requires distinct HTTPS admin/game hostnames and Secure game cookies");
+        if(!httpsOrigin(admin)||!httpsOrigin(game)||!env.getProperty("education.secure-game-cookie",Boolean.class,true))
+            throw new IllegalStateException("Production requires HTTPS admin/game origins and Secure game cookies");
+    }
+    private boolean httpsOrigin(URI origin) {
+        return "https".equals(origin.getScheme()) && origin.getHost()!=null && origin.getRawUserInfo()==null
+            && origin.getRawQuery()==null && origin.getRawFragment()==null
+            && (origin.getRawPath()==null || origin.getRawPath().isEmpty() || "/".equals(origin.getRawPath()));
     }
 }

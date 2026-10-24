@@ -2,7 +2,7 @@
 """Destructive ONLY to disposable dev fixtures; never point this at a production instance."""
 import argparse,json,os,re,subprocess,urllib.request,urllib.error
 from datetime import datetime,timezone,timedelta
-p=argparse.ArgumentParser();p.add_argument('--base',default='http://127.0.0.1:8081');p.add_argument('--redis-cli');p.add_argument('--redis-port',default='6379');p.add_argument('--allow-development',action='store_true');args=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--base',default='http://127.0.0.1:8081');p.add_argument('--api-prefix',default='',choices=['','/dev-api','/prod-api']);p.add_argument('--redis-cli');p.add_argument('--redis-port',default='6379');p.add_argument('--allow-development',action='store_true');args=p.parse_args()
 if not args.allow_development or not re.match(r'^http://(127\.0\.0\.1|localhost):\d+$',args.base):p.error('Only explicitly allowed loopback disposable development environments may be tested.')
 admin_password=os.environ['EDU_TEST_ADMIN_PASSWORD'];demo_password=os.environ['EDU_TEST_DEMO_PASSWORD']
 results=[]
@@ -13,7 +13,8 @@ def call(path,method='GET',data=None,token=None,cookie=None):
  headers={'Content-Type':'application/json'}
  if token:headers['Authorization']='Bearer '+token
  if cookie:headers['Cookie']=cookie
- req=urllib.request.Request(args.base+path,data=json.dumps(data).encode() if data is not None else None,headers=headers,method=method)
+ prefix='' if path.startswith('/play/') else args.api_prefix
+ req=urllib.request.Request(args.base+prefix+path,data=json.dumps(data).encode() if data is not None else None,headers=headers,method=method)
  try:r=opener.open(req,timeout=20)
  except urllib.error.HTTPError as e:r=e
  raw=r.read();text=raw.decode(errors='replace')
@@ -39,6 +40,8 @@ def launch(token,gid):
  # The default game origin is loopback; extract path without forwarding credentials elsewhere.
  from urllib.parse import urlsplit
  parsed=urlsplit(r['data']['url']);check('launch origin is loopback',parsed.hostname in ['localhost','127.0.0.1'])
+ if args.api_prefix:
+  check('game preview shares gateway origin',parsed.scheme+'://'+parsed.netloc==args.base)
  path=parsed.path+'?'+parsed.query
  status,b,h=call(path);check('single-use ticket exchange',status==303,b);cookie=h.get('Set-Cookie').split(';')[0]
  status,b,_=call(path);check('ticket replay denied',status==403,b)

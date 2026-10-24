@@ -1,6 +1,21 @@
 # 部署与迁移
 
-## 当前先使用演示部署（不需要 Redis / MySQL）
+## 统一域名
+
+后台和可信内部游戏统一使用 `https://fengyucode.zhangff.cn`：
+
+| 内容 | 地址 |
+|---|---|
+| 教育后台 | `https://fengyucode.zhangff.cn/` |
+| 星球游戏 | `https://fengyucode.zhangff.cn/play/planet/index.html` |
+| 数字配对 | `https://fengyucode.zhangff.cn/play/number-match/index.html` |
+| 管理 API | `https://fengyucode.zhangff.cn/prod-api/` |
+
+网站网关将 `/prod-api/` 和 `/play/` 代理到 API；`/play/` 不提供公开文件目录。游戏 HTML、脚本及素材逐请求检查游戏会话、父登录会话、账号、学校、角色权限和授权。学生直访未授权游戏返回403，老师通过菜单预览取得单次票据再进入。
+
+同源下游戏代码与后台共享浏览器安全边界，路径不能提供来源隔离。内部目录仅部署可信游戏；外部游戏继续使用 HTTPS 白名单外链。游戏权限校验依然由后端负责，不因同域省略。
+
+## 当前演示部署（不需要 Redis / MySQL）
 
 在 `education-admin` 目录执行：
 
@@ -10,66 +25,54 @@ cp deploy/demo.env.example deploy/.env.demo
 docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --build
 ```
 
-本机演示访问 `http://localhost:18090`，游戏地址为 `http://127.0.0.1:18091`。镜像自动构建现有星球游戏并打入 API；不需要先在服务器上运行 npm。默认保留验证码和首次强制改密。
+本机访问 `http://localhost:18090`，游戏使用相同地址下的 `/play/`。镜像构建现有星球游戏并打入 API，无需在服务器安装 Node.js。默认保留验证码和首次强制改密。
 
-部署到已有 HTTPS 服务器时，在 `deploy/.env.demo` 设置：
+部署到现有 HTTPS 服务器时，在 `deploy/.env.demo` 设置：
 
 ```dotenv
-EDU_ADMIN_ORIGIN=https://admin.example.com
-EDU_GAME_ORIGIN=https://games.example.com
+EDU_ADMIN_ORIGIN=https://fengyucode.zhangff.cn
+EDU_GAME_ORIGIN=https://fengyucode.zhangff.cn
 EDU_SECURE_GAME_COOKIE=true
 ```
 
-将下面 Caddy 示例的两个域名分别代理到 18090 和 18091。默认端口只监听本机；远程联调可以用 SSH 转发这两个端口。不要仅使用同一个主机名的不同端口提供后台和游戏，Cookie 不按端口隔离。
-
-该配置使用 dev 演示数据、H2 内存库和本地缓存，仅一个 API 实例。后端重启会清空编辑内容、密码变更和全部会话，重新生成样例；Redis 专用监控接口不启用。测试数据包含示范学校、班级、老师、学生和资源授权。演示密码可通过环境变量更改。
-
-`education.yml` 新增无 Redis / MySQL 的容器构建启动及接口验收任务。正常部署不关闭验证码；CI 仅对一次性测试容器显式关闭验证码。当前本机没有运行 Docker daemon，因此容器部署结果仍需由该流水线或有 Docker 的服务器验证，不宣称已上线。
-
-## 正式数据库与缓存预留
-
-`dev` 配置固定使用内存缓存，且排除 Redis 自动配置，不尝试连接 Redis。正式 `education` 配置默认使用 `education.cache.type=redis`，由 `EDU_CACHE_TYPE` 选择，复用现有 RedisTemplate。验证码、登录、密码错误次数、请求限流、游戏单次票据和游戏会话均通过同一缓存门面访问，无需改业务接口。
-
-以下 `deploy/compose.yaml` 保留正式 MySQL + Redis 方案，当前演示无需执行。
-
-## 独立部署
-
-本项目没有修改原星球项目的Compose项目名、镜像身份、服务器目录或GitHub Secrets。建议新目录 `/project/education-admin`、独立域名与独立数据卷。示例网关只绑定127.0.0.1的18090和18091端口，外部HTTPS由现有Caddy或受信任反向代理提供。
-
-1. 复制`.env.example`为`.env`，替换所有密码和Token签名密钥。
-2. 指定`EDU_ADMIN_ORIGIN=https://admin.example.com`及`EDU_GAME_ORIGIN=https://games.example.com`，管理端使用另一个主机名如`https://admin.example.com`。**不同端口不足以隔离Cookie**，不要把游戏部署在管理端主机名下。
-3. `./scripts/build-games.sh`构建星球版本。游戏版本目录以只读卷挂载，API不接收任意HTML游戏包上传。
-4. `docker compose --env-file .env -f deploy/compose.yaml up -d --build`。仅在首次空MySQL数据卷时，镜像按V001至V003顺序初始化数据库。已有数据库应通过评审后的增量SQL升级，禁止删除卷以“升级”。
-5. HTTPS管理域名代理到127.0.0.1:18090；游戏域名代理到127.0.0.1:18091。游戏网关仅代理`/play/`，不暴露原始文件目录、后台页面或管理API。后台没有公网映射端口。
-6. 以设置的初始admin密码登录并完成强制改密；先在原生部门管理建立学校节点，再在学校管理登记业务信息和有效期，建立班级、学校资源池及用户。
-
-生产默认启用Secure游戏Cookie。只有本地HTTP开发时允许关闭。外部引用须在`EDU_EXTERNAL_HOSTS`以逗号列出HTTPS精确主机名；不允许任意跳转或把内部游戏伪装成公开外链。
-
-Caddy配置示例（替换域名）：
+域名只需代理到本机18090端口。Caddy示例：
 
 ```caddy
-admin.example.com {
+fengyucode.zhangff.cn {
     reverse_proxy 127.0.0.1:18090
-}
-games.example.com {
-    reverse_proxy 127.0.0.1:18091
 }
 ```
 
-真实客户IP的代理信任链按现有部署统一配置，只信任受控代理。数据库和Redis没有公网端口。Dockerfile与Compose已经提供，但当前机器Docker daemon未运行，因此本次未实际执行容器部署，也未连接生产MySQL。
+该配置只有 API 和网站网关两个服务，使用 dev 样例数据、H2 内存库和本地缓存，只运行一个 API 实例。后端重启会清空编辑内容、密码变更和会话，再生成示范学校、班级、老师、学生与授权。演示账号密码通过环境变量设置；Redis 专用监控不启用。
 
-## 原星球公开入口
+`education.yml` 包含无 Redis / MySQL 的演示容器构建启动与接口验收任务，检查统一网站入口下匿名游戏访问返回403。正常部署不关闭验证码；CI只对一次性测试容器显式关闭验证码。本机未运行 Docker daemon，容器启动与线上结果仍须在对应环境验证。
 
-`gamesoptionproject/src/main.ts`生产构建会检查游戏会话；原Nginx配置新增auth_request，HTML和静态资源失败关闭并展示403。健康检查和发布标记继续可用。
+## 正式数据库与缓存预留
 
-原Nginx如继续保留，需要和`education-api`处在可解析的受控Docker网络；未接入时拒绝资源访问。这是有意关闭匿名备用入口。推荐让平台通过独立游戏域名的`/play/planet/`提供服务，并撤下旧匿名站点；不要把旧站继续当公开文件CDN。
+`dev` 固定使用内存缓存，排除 Redis 自动配置，不尝试连接 Redis。正式 `education` 配置默认使用 Redis，保留 RedisTemplate 和连接环境变量。验证码、登录、限流、游戏票据和会话使用统一缓存门面。
 
-原星球本地纯UI调试可显式使用`VITE_STANDALONE_DEV=true npm run dev`，只在Vite开发模式生效；生产编译不会接受这个绕过开关。
+以下 `deploy/compose.yaml` 保留正式 MySQL + Redis 方案，当前演示无需执行：
+
+1. 复制 `.env.example` 为 `.env`，替换密码和Token密钥。后台和游戏来源默认均为 `https://fengyucode.zhangff.cn`。
+2. `./scripts/build-games.sh` 构建星球版本，版本目录以只读卷挂载。
+3. `docker compose --env-file .env -f deploy/compose.yaml up -d --build`。首次空 MySQL 数据卷按 V001至V003初始化。已有库应执行评审后的增量SQL，禁止删除卷以“升级”。
+4. 将域名代理到18090。API、MySQL和Redis不映射公网端口。
+5. admin 首次登录强制改密，再登记学校有效期、班级、资源池及用户。
+
+正式环境保持 HTTPS 与 Secure 游戏Cookie。外部游戏须在 `EDU_EXTERNAL_HOSTS` 列出精确HTTPS主机名。真实客户IP的代理信任链按服务器统一配置，只信任受控代理。
+
+## 原星球站点迁移
+
+原 `fengyucode.zhangff.cn` 根路径展示星球游戏；切换后根路径展示教育后台，星球入口变为 `/play/planet/`。部署目录建议 `/project/education-admin`，不覆盖原项目文件或数据卷；确认新服务可用后，再把现有域名反向代理切换到18090，保留旧配置以便回滚。
+
+原星球生产代码会检查游戏会话，旧Nginx也会鉴权，不应继续保留匿名文件备用入口。旧独立容器未接入API时会拒绝游戏资源。`deploy/nginx.games.conf` 仅保留可选独立游戏网关参考，默认Compose不再启用它。
+
+原星球本地纯UI调试可使用 `VITE_STANDALONE_DEV=true npm run dev`，仅限开发模式，生产构建不接受该绕过开关。
 
 ## 更新与回滚
 
-游戏按不可变版本目录发布，先上传与验证新目录，再修改目录版本。回滚将目录条目版本指回已有构建；不要覆盖相同版本文件。课件发布生成历史快照，过期编辑通过row_version返回409。
+游戏按不可变版本目录发布，先验证新目录，再修改版本号；回滚指向已有版本，不覆盖相同版本文件。课件发布保留快照，过期编辑以 row_version 返回409。
 
-数据库DDL在MySQL中不是可完整回滚的普通事务。执行SQL前备份数据库、保留文件版本和当前镜像标识，先在同版本MySQL测试库执行。当前V001–V003用于新库，后续变更必须新增编号迁移。API启动不会自动覆盖既有管理员密码。
+MySQL DDL不是可完整回滚的普通事务。执行前备份数据库并在同版本测试库验证，V001至V003仅用于新库，后续使用新编号迁移。API启动不覆盖已有管理员密码。
 
-备份`education-db`和资源文件；恢复演练与容量测试需在实际部署环境执行。本次没有向服务器推送代码、修改DNS、创建生产数据库或发布线上站点。
+本次代码修改不包含服务器发布、域名代理切换或创建生产数据库，不代表现有线上站点已经变更。

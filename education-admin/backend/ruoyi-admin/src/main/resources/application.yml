@@ -163,7 +163,7 @@ education:
     type: ${EDU_CACHE_TYPE:redis}
   games-root: ${EDU_GAMES_ROOT:../games}
   admin-origin: ${EDU_ADMIN_ORIGIN:http://localhost:5173}
-  game-origin: ${EDU_GAME_ORIGIN:http://127.0.0.1:8081}
+  game-origin: ${EDU_GAME_ORIGIN:${education.admin-origin}}
   secure-game-cookie: ${EDU_SECURE_GAME_COOKIE:true}
   external-hosts: ${EDU_EXTERNAL_HOSTS:}
   bootstrap-password: ${EDU_ADMIN_PASSWORD:}
