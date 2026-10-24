@@ -1,0 +1,36 @@
+# Reuses the existing site's web identity so the current Caddy route remains valid.
+name: fengyucode
+services:
+  education-api:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/web:api-${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    env_file: ${EDU_CREDENTIALS_FILE:?Set protected server credentials file}
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      EDU_CACHE_TYPE: memory
+      EDU_ADMIN_ORIGIN: https://fengyucode.zhangff.cn
+      EDU_GAME_ORIGIN: https://fengyucode.zhangff.cn
+      EDU_SECURE_GAME_COOKIE: 'true'
+      EDU_GAMES_ROOT: /games
+      EDU_RELEASE_ID: ${IMAGE_TAG}
+    networks: [backend]
+  fengyucode-web:
+    image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/web:${IMAGE_TAG:?Set IMAGE_TAG}
+    restart: unless-stopped
+    ports: ['127.0.0.1:${HTTP_PORT:-18088}:8080']
+    depends_on: [education-api]
+    networks:
+      backend:
+      gateway:
+        aliases: [fengyucode-web]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', '--max-time', '4', 'http://127.0.0.1:8080/healthz']
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+networks:
+  backend:
+  gateway:
+    external: true
+    name: ${GATEWAY_NETWORK:-crm-ai_default}

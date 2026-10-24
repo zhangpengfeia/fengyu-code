@@ -141,7 +141,7 @@ docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --b
 
 这些是**新库初始化脚本**，不要直接导入已有若依生产库，不要重复执行。后续升级新增增量迁移，不覆盖既有文件。原生SQL与业务SQL均保留索引和身份键；生产迁移需先备份并在MySQL 8.0测试库验证。
 
-部署详见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。项目使用独立镜像、网络、端口和数据卷，不覆盖已有星球项目的服务器目录或部署身份。
+部署详见 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)。本机与独立数据库方案保持独立。当前同域名线上演示发布会有意接管原站点的 `fengyucode-web` 身份和18088端口，保留历史版本及回滚指针。
 
 ## 本期边界
 
@@ -153,3 +153,9 @@ docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --b
 - PK赛程、积分流水与榜单、AI配音评分及第三方评分适配。
 
 外部游戏目前以HTTPS白名单链接打开，明确标记“仅控制后台入口”；对方没有SSO或票据协议时，不能承诺保护其公网地址。内部游戏受本项目网关实际保护。原星球公开站点也已加入失败关闭的保护配置，迁移部署前须阅读部署说明，避免继续保留匿名备用入口。
+
+## 线上发布
+
+main推送通过 `Education platform build and deploy` 的全部任务后，会发布到 `https://fengyucode.zhangff.cn`，复用现有生产SSH配置及Caddy路由。`demo-deployment` 只是临时验收；必须等 `publish` 和 `deploy` 成功，且HTTPS版本核对通过，才算线上生效。
+
+公网初始密码随机生成，保存在服务器 `/project/fengyucode/.pipeline/education.env`（0600），请由服务器管理员安全查看。旧星球工作流现在仅检查源码，不再发布覆盖网站。发布与回滚说明见 `docs/DEPLOYMENT.md`。

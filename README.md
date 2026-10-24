@@ -5,7 +5,7 @@
 ```text
 code-ai/
 ├── .git/                         # 整个仓库共用的 Git 历史
-├── .github/workflows/deploy.yml   # 星球项目的检查、构建和部署
+├── .github/workflows/deploy.yml   # 星球源码检查（站点由教育流水线发布）
 ├── .gitignore
 ├── README.md
 └── gamesoptionproject/
@@ -39,9 +39,9 @@ python3 -m unittest discover -s deploy/tests -v
 
 ## 流水线与部署
 
-GitHub Actions 保留在仓库根目录，工作目录、npm 缓存锁文件和 Docker 构建上下文均指向 `gamesoptionproject/`。推送或 PR 修改该目录或对应工作流时触发检查；`main` 推送在检查通过后部署，也可手动运行工作流。
+GitHub Actions 保留在仓库根目录。星球源码工作流仅进行检查，教育工作流 `.github/workflows/education.yml` 负责平台与游戏的测试、镜像构建和线上发布，避免两个工作流互相覆盖网站。
 
-现有部署身份保持一致，目录迁移不需要重建服务器应用：
+统一域名的教育平台发布复用现有站点身份：
 
 | 配置                   | 当前值                                  |
 | ---------------------- | --------------------------------------- |
@@ -58,7 +58,7 @@ GitHub Actions 保留在仓库根目录，工作目录、npm 缓存锁文件和 
 
 在仓库根目录新增同级项目文件夹，各自维护依赖、锁文件、构建产物和部署文件。为新项目在 `.github/workflows/` 创建独立工作流，设置对应目录的路径过滤、工作目录、缓存锁文件和 Docker 上下文。
 
-独立部署的新项目应使用自己的服务器目录、Compose 项目名、网络别名、宿主机端口、域名、镜像名和并发分组，避免覆盖星球项目。不要给新项目复用 `/project/fengyucode` 或 `fengyucode-web` 服务身份。修改其他项目不会触发当前星球项目的流水线。
+其他独立项目应使用各自部署身份。按当前同域名要求，教育平台有意接管 `/project/fengyucode` 和 `fengyucode-web`，后台在根路径，星球移至 `/play/planet/`；使用版本核对与自动回滚，其他项目不受影响。
 
 ## 智慧教育后台
 

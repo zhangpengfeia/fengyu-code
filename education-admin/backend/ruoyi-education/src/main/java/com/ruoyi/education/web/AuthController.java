@@ -23,6 +23,14 @@ import static com.ruoyi.education.service.AccessService.*;
 public class AuthController {
     final BizMapper db;final AccessService access;final SysLoginService login;final TokenService tokens;final RedisCache redis;final Environment env;
     public AuthController(BizMapper db,AccessService a,SysLoginService l,TokenService t,RedisCache redis,Environment e) {this.db=db;access=a;login=l;tokens=t;this.redis=redis;env=e;}
+    /** Readiness and immutable release identity; no account details or secrets. */
+    @Anonymous @GetMapping("/status")
+    public org.springframework.http.ResponseEntity<?> status() {
+        if(db.one(BizTable.SECURITY,1L)==null)
+            return org.springframework.http.ResponseEntity.status(503).body(Map.of("status","STARTING"));
+        return org.springframework.http.ResponseEntity.ok().cacheControl(org.springframework.http.CacheControl.noStore())
+            .body(Map.of("status","UP","release",env.getProperty("EDU_RELEASE_ID","development")));
+    }
     @Anonymous @PostMapping("/login")
     public AjaxResult login(@RequestBody Map<String,String> v,HttpServletRequest req) {
         String username=Objects.toString(v.get("username"),"").trim();String mode=Objects.toString(v.get("mode"),"ACCOUNT");

@@ -33,3 +33,5 @@ API认证沿用若依 `Authorization: Bearer <token>`，Token从Redis恢复且�
 新增用户只接受受控DTO字段：role_key、user_name（老师等）、nick_name、school_id、class_id、student_no、class_ids、phone、status。客户端提交role_id、password、积分或创建者不会直接写入。用户身份不可直接切换；学生当前学校不能通过通用编辑直接跨校变更。未验证手机号与已验证快照不一致时不能手机号登录。
 
 内部发布须已有 `games/{game_code}/{version_no}/index.html` 和匹配的版本manifest。无源码发布上传接口；由受信任构建脚本或运维部署版本目录。游戏不能通过前端回调自行增加正式积分，本期没有启用正式积分回调。
+
+发布健康检查：匿名 `GET /biz/auth/status`，数据库账号初始化前返回503，完成后返回 `status=UP` 与 `release` 标记，不返回账号或密钥。网站 `/healthz` 代理到该接口。

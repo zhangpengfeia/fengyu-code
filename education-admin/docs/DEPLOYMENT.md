@@ -15,6 +15,24 @@
 
 同源下游戏代码与后台共享浏览器安全边界，路径不能提供来源隔离。内部目录仅部署可信游戏；外部游戏继续使用 HTTPS 白名单外链。游戏权限校验依然由后端负责，不因同域省略。
 
+## GitHub 自动发布到现有域名
+
+`.github/workflows/education.yml` 在 main 上依次执行构建测试、一次性演示验收、镜像发布和 production SSH 部署。复用已有 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS`，无需重新配置DNS。
+
+发布目录沿用 `/project/fengyucode`，Compose项目为 `fengyucode`，网站服务与共享网络别名为 `fengyucode-web`，容器8080、宿主机127.0.0.1:18088，继续匹配现有 Caddy `reverse_proxy fengyucode-web:8080`。新API仅连接该站点私有backend网络，不公开端口，不连接MySQL或Redis。此次域名接管是对原“项目独立部署”约定的有意调整。
+
+旧 `.github/workflows/deploy.yml` 保留星球源码检查，停止旧镜像发布，避免覆盖教育站点。新的 `compose.release.yaml` 与本机 `compose.demo.yaml` 区分维护；前者从GHCR拉取已验证镜像，服务器不构建源码。
+
+服务器首次发布自动生成随机管理员密码、演示账号密码和Token密钥，保存在 `/project/fengyucode/.pipeline/education.env`，权限0600，不打印到流水线日志，不提交到仓库。初始用户名为 `admin`，密码由服务器管理员在控制台安全查看该文件的 `EDU_ADMIN_PASSWORD`；老师、学生使用 `EDU_DEMO_PASSWORD`。不要继续使用本机演示的固定密码登录公网环境。已有文件不会自动改写。H2仍为演示模式，后端重启后数据及已修改密码会恢复为该文件对应的初始状态。
+
+发布先拉取全部镜像，再切换站点；检查网站与API版本一致、API初始化完成、匿名游戏403，以及真实Caddy HTTPS入口。失败自动恢复上一版并保留current指向；手动回滚：
+
+```sh
+bash /project/fengyucode/.pipeline/rollback.sh rollback /project/fengyucode
+```
+
+首次迁移可回滚到原星球版本。其他项目与其数据库不受影响。前端与API镜像复用已有 GHCR `web` 包，分别用版本标签和 `api-版本` 标签，沿用服务器已有拉取权限；拉取失败会在切换前终止，保留旧站点。生产SSH仍严格验证主机公钥。
+
 ## 当前演示部署（不需要 Redis / MySQL）
 
 在 `education-admin` 目录执行：
@@ -75,4 +93,4 @@ fengyucode.zhangff.cn {
 
 MySQL DDL不是可完整回滚的普通事务。执行前备份数据库并在同版本测试库验证，V001至V003仅用于新库，后续使用新编号迁移。API启动不覆盖已有管理员密码。
 
-本次代码修改不包含服务器发布、域名代理切换或创建生产数据库，不代表现有线上站点已经变更。
+工作流成功完成 production 发布和HTTPS版本核对后，才能确认线上入口已生效；本地构建或CI临时演示成功不能代替该结果。
