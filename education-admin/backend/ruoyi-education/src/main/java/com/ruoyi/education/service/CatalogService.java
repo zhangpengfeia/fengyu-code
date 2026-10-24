@@ -31,8 +31,8 @@ public class CatalogService {
     public Map<String,Object> list(String kind,int page,int size,String keyword,Map<String,String> filters) {
         BizTable t=table(kind); access.require("biz:"+module(t)+":list");
         SysUser u=access.current(); BizQuery q=new BizQuery(t);q.keyword=keyword;
-        for(String k:List.of("status","source_type","category_code","subject_code","volume","school_id")) {
-            if(t.writable.contains(k) && filters.get(k)!=null && !filters.get(k).isBlank()) q.eq(k,filters.get(k));
+        for(String k:List.of("status","source_type","category_code","subject_code","volume","school_id","stage_code","ability")) {
+            if((t.writable.contains(k)||(t==BizTable.COURSEWARE&&"ability".equals(k))) && filters.get(k)!=null && !filters.get(k).isBlank()) q.eq(k,filters.get(k));
         }
         if(!u.isAdmin() && t!=BizTable.GAME) q.schoolIds=access.schoolIds(u);
         if((t==BizTable.GAME||t==BizTable.COURSEWARE)&&!manage(u,t)) {
@@ -58,6 +58,8 @@ public class CatalogService {
             var gameIds=db.gameIds(rid);
             if(!editing&&!u.isAdmin()) gameIds=gameIds.stream().filter(gid->access.game(u,db.one(BizTable.GAME,gid))).toList();
             r.put("game_ids",gameIds);
+            BizTable ext="MATH".equals(r.get("subject_code"))?BizTable.MATH:"READING".equals(r.get("subject_code"))?BizTable.READ:null;
+            if(ext!=null) r.put("extension",Objects.requireNonNullElse(db.one(ext,rid),Map.of()));
         }
         return r;
     }
@@ -101,7 +103,8 @@ public class CatalogService {
             }
         }
         if(t==BizTable.COURSEWARE) {
-            str(v,"courseware_name",128);choice(v,"subject_code","MATH","READING","SCIENCE","CREATIVE");
+            if(old!=null&&!Objects.equals(old.get("subject_code"),v.get("subject_code")))throw new ServiceException("已建立课件不可切换学科",400);
+            str(v,"courseware_name",128);if(!db.dictValues("biz_subject").contains(text(v,"subject_code")))throw new ServiceException("请选择已启用的学科字典项",400);
             if(id(v.get("volume"))<1||id(v.get("volume"))>12) throw new ServiceException("册次须为1至12",400);
             v.put("version_no",old==null?0:old.get("version_no"));
         }
@@ -117,6 +120,7 @@ public class CatalogService {
         }
         if(t==BizTable.SCHOOL) {
             str(v,"school_name",100);str(v,"school_code",32);date(v,"expire_time");choice(v,"school_status","ACTIVE","DISABLED");
+            if("ACTIVE".equals(v.get("school_status"))&&!instant(v.get("expire_time")).isAfter(Instant.now()))throw new ServiceException("启用学校的到期时间须晚于当前时间",400);
             if(db.schoolDepartment(id(v.get("school_id")))==0) throw new ServiceException("须先在部门管理建立学校节点",400);
         }
         if(t==BizTable.CLASS) {
@@ -132,7 +136,27 @@ public class CatalogService {
             v.put("expected_row_version",old.get("row_version"));
             if(db.update(t,rid,v,u.getUserName())!=1) throw new ServiceException("记录已更新，请刷新后重新编辑",409);
         }
+        if(t==BizTable.SCHOOL) db.schoolState(rid,v.get("expire_time"),"ACTIVE".equals(v.get("school_status"))?"0":"1",u.getUserName());
         if(t==BizTable.COURSEWARE) {
+            BizTable ext="MATH".equals(v.get("subject_code"))?BizTable.MATH:"READING".equals(v.get("subject_code"))?BizTable.READ:null;
+            Map<String,Object> extension=new LinkedHashMap<>();
+            if(ext!=null) {
+                Object raw=payload.get("extension");
+                if(!(raw instanceof Map<?,?>))throw new ServiceException("请填写学科扩展信息",400);
+                Map<?,?> supplied=(Map<?,?>)raw;
+                for(String k:ext.writable)if(supplied.containsKey(k))extension.put(k,supplied.get(k));
+                extension.put("courseware_id",rid);
+                if(ext==BizTable.MATH){str(extension,"stage",32);str(extension,"ability",64);for(String k:List.of("discuss_img","intro_video","game_url","teacher_book"))LearningSupport.url(extension,k,false);}
+                else {
+                    try {var tree=json.readTree(text(extension,"config_json"));if(tree==null||!tree.isObject())throw new IllegalArgumentException();}
+                    catch(Exception e){throw new ServiceException("课件流程须为有效JSON对象",400);}
+                    if(extension.get("dubbing_material_id")!=null) {
+                        var m=db.one(BizTable.MATERIAL,id(extension.get("dubbing_material_id")));
+                        if(m==null||id(m.get("volume"))!=id(v.get("volume"))||!"0".equals(m.get("status"))||!DubbingService.courseTag(m))throw new ServiceException("请选择本册启用的课件配套或通用素材",400);
+                    }
+                }
+                if(db.one(ext,rid)==null)db.insert(ext,extension,u.getUserName());else db.update(ext,rid,extension,u.getUserName());
+            }
             Object gids=payload.get("game_ids"); List<?> ids=gids instanceof List<?> l?l:List.of();
             if(ids.size()>100) throw new ServiceException("单课件关联游戏不能超过100个",400);
             db.unlinkGames(rid);int sort=0;
@@ -140,11 +164,28 @@ public class CatalogService {
             if("PUBLISHED".equals(v.get("status"))) {
                 int version=(old==null?0:((Number)old.get("version_no")).intValue())+1;
                 db.update(BizTable.COURSEWARE,rid,new LinkedHashMap<>(Map.of("version_no",version)),u.getUserName());
-                try {db.version(rid,version,json.writeValueAsString(Map.of("content",v,"game_ids",ids)),u.getUserName());}
+                try {db.version(rid,version,json.writeValueAsString(Map.of("content",v,"game_ids",ids,"extension",extension)),u.getUserName());}
                 catch(Exception ex) {throw new ServiceException("课件发布版本保存失败",500);}
             }
         }
         return rid;
+    }
+    public List<Map<String,Object>> versions(long course) {
+        detail(BizTable.COURSEWARE,course,true);var versions=db.versions(course);
+        for(var version:versions) {
+            try {
+                Object raw=version.get("content_snapshot_json");var tree=raw instanceof byte[] bytes?json.readTree(bytes):json.readTree(raw.toString());
+                if(tree.isTextual())tree=json.readTree(tree.textValue());version.put("content_snapshot_json",tree.toString());
+            } catch(Exception e){throw new ServiceException("课件快照数据格式无效",500);}
+        }
+        return versions;
+    }
+    @Transactional public long customize(long course,long school) {
+        access.require("biz:courseware:add");access.school(school);access.schoolActive(school);
+        var source=detail(BizTable.COURSEWARE,course,false);
+        if(source.get("school_id")!=null)throw new ServiceException("仅支持从全局模板建立学校定制",400);
+        var copy=new LinkedHashMap<>(source);copy.put("school_id",school);copy.put("status","DRAFT");
+        return save("courseware",null,copy);
     }
     @Transactional
     public void remove(String kind,long rid) {

@@ -5,6 +5,9 @@ import org.apache.ibatis.annotations.*;
 import java.util.*;
 
 public interface BizMapper {
+    @Select("SELECT dict_value FROM sys_dict_data WHERE dict_type=#{type} AND status='0' ORDER BY dict_sort,dict_code") List<String> dictValues(String type);
+    @Update("UPDATE sys_dept SET dept_type='1',expire_time=#{expiry},status=#{status},update_by=#{actor},update_time=CURRENT_TIMESTAMP WHERE dept_id=#{id}")
+    void schoolState(@Param("id") long id,@Param("expiry") Object expiry,@Param("status") String status,@Param("actor") String actor);
     @SelectProvider(type=BizSql.class,method="userList") List<Map<String,Object>> scopedUsers(@Param("q") Map<String,Object> query);
     @SelectProvider(type=BizSql.class,method="userCount") long countUsers(@Param("q") Map<String,Object> query);
     @Select("SELECT COUNT(*) FROM sys_dept WHERE dept_id=#{id} AND del_flag='0'") int schoolDepartment(long id);

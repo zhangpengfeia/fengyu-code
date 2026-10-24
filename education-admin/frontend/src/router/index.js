@@ -28,6 +28,7 @@ import Layout from "@/layout";
 export const constantRoutes = [
   {
     path: "/school/:schoolCode/login",
+    alias: "/school/:schoolCode",
     component: () => import("@/views/login"),
     hidden: true,
   },

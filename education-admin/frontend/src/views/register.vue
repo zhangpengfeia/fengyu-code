@@ -1,219 +1,166 @@
 <template>
-  <div class="register">
-    <el-form ref="registerRef" :model="registerForm" :rules="registerRules" class="register-form">
-      <h3 class="title">{{ title }}</h3>
-      <el-form-item prop="username">
-        <el-input 
-          v-model="registerForm.username" 
-          type="text" 
-          size="large" 
-          auto-complete="off" 
-          placeholder="账号"
+  <div class="student-register">
+    <el-card class="register-card"
+      ><h2>学生注册</h2>
+      <el-form label-width="100px" @submit.prevent="submit">
+        <el-form-item label="学校" required
+          ><el-cascader
+            v-model="form.school_id"
+            :options="schools"
+            :props="{ emitPath: false }"
+            filterable
+            placeholder="选择省市区学校"
+            @change="loadClasses"
+        /></el-form-item>
+        <el-form-item label="班级" required
+          ><el-select v-model="form.class_id"
+            ><el-option
+              v-for="c in classes"
+              :key="c.class_id"
+              :value="String(c.class_id)"
+              :label="c.class_name" /></el-select
+        ></el-form-item>
+        <el-form-item label="学号" required
+          ><el-input
+            v-model="form.student_no"
+            maxlength="32"
+            placeholder="保留学号前导零"
+        /></el-form-item>
+        <el-form-item label="姓名" required
+          ><el-input v-model="form.nick_name" maxlength="30"
+        /></el-form-item>
+        <el-form-item label="手机号"
+          ><el-input
+            v-model="form.phone"
+            maxlength="11"
+            placeholder="选填，验证后可用于登录"
+        /></el-form-item>
+        <el-form-item label="密码" required
+          ><el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            placeholder="8至32位，包含至少两类字符"
+        /></el-form-item>
+        <el-form-item label="确认密码" required
+          ><el-input
+            v-model="confirm"
+            type="password"
+            show-password
+            autocomplete="new-password"
+        /></el-form-item>
+        <el-form-item v-if="captchaEnabled" label="验证码" required
+          ><el-input v-model="form.code" style="width: 140px" /><img
+            :src="captchaImage"
+            alt="点击刷新验证码"
+            style="height: 38px; cursor: pointer; margin-left: 10px"
+            @click="captcha"
+        /></el-form-item>
+        <el-form-item
+          ><el-button type="primary" native-type="submit" :loading="loading"
+            >注册</el-button
+          ><router-link to="/login" style="margin-left: 20px"
+            >返回登录</router-link
+          ></el-form-item
         >
-          <template #prefix><svg-icon icon-class="user" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password" :rules="registerPwdValidator">
-        <el-input
-          v-model="registerForm.password"
-          type="password"
-          size="large" 
-          auto-complete="off"
-          placeholder="密码"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="confirmPassword">
-        <el-input
-          v-model="registerForm.confirmPassword"
-          type="password"
-          size="large" 
-          auto-complete="off"
-          placeholder="确认密码"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="password" class="el-input__icon input-icon" /></template>
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code" v-if="captchaEnabled">
-        <el-input
-          size="large" 
-          v-model="registerForm.code"
-          auto-complete="off"
-          placeholder="验证码"
-          style="width: 63%"
-          @keyup.enter="handleRegister"
-        >
-          <template #prefix><svg-icon icon-class="validCode" class="el-input__icon input-icon" /></template>
-        </el-input>
-        <div class="register-code">
-          <img :src="codeUrl" @click="getCode" class="register-code-img"/>
-        </div>
-      </el-form-item>
-      <el-form-item style="width:100%;">
-        <el-button
-          :loading="loading"
-          size="large" 
-          type="primary"
-          style="width:100%;"
-          @click.prevent="handleRegister"
-        >
-          <span v-if="!loading">注 册</span>
-          <span v-else>注 册 中...</span>
-        </el-button>
-        <div style="float: right;">
-          <router-link class="link-type" :to="'/login'">使用已有账户登录</router-link>
-        </div>
-      </el-form-item>
-    </el-form>
-    <!--  底部  -->
-    <div class="el-register-footer">
-      <span>{{ footerContent }}</span>
-    </div>
+      </el-form>
+    </el-card>
   </div>
 </template>
-
 <script setup>
-import { ElMessageBox } from "element-plus"
-import { getCodeImg, register } from "@/api/login"
-import defaultSettings from '@/settings'
-import { usePasswordRule } from "@/utils/passwordRule"
-
-const title = import.meta.env.VITE_APP_TITLE
-const footerContent = defaultSettings.footerContent
-const router = useRouter()
-const { proxy } = getCurrentInstance()
-const { registerPwdValidator } = usePasswordRule()
-
-const registerForm = ref({
-  username: "",
+import { ref, reactive, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { ElMessage, ElMessageBox } from "element-plus";
+import request from "@/utils/request";
+import { getCodeImg } from "@/api/login";
+const router = useRouter(),
+  schools = ref([]),
+  classes = ref([]),
+  confirm = ref(""),
+  loading = ref(false),
+  captchaEnabled = ref(true),
+  captchaImage = ref("");
+const form = reactive({
+  school_id: "",
+  class_id: "",
+  student_no: "",
+  nick_name: "",
+  phone: "",
   password: "",
-  confirmPassword: "",
   code: "",
-  uuid: ""
-})
-
-const equalToPassword = (rule, value, callback) => {
-  if (registerForm.value.password !== value) {
-    callback(new Error("两次输入的密码不一致"))
-  } else {
-    callback()
+  uuid: "",
+});
+const publicGet = (url, params) =>
+  request({
+    url: `/biz/student-registration/${url}`,
+    params,
+    headers: { isToken: false },
+  });
+async function captcha() {
+  const r = await getCodeImg();
+  captchaEnabled.value = r.captchaEnabled !== false;
+  captchaImage.value = "data:image/gif;base64," + r.img;
+  form.uuid = r.uuid;
+  form.code = "";
+}
+async function loadClasses() {
+  form.class_id = "";
+  classes.value = (
+    await publicGet("classes", { school_id: form.school_id })
+  ).data;
+}
+async function submit() {
+  if (form.password !== confirm.value) {
+    ElMessage.error("两次输入的密码不一致");
+    return;
+  }
+  if (
+    !form.school_id ||
+    !form.class_id ||
+    !form.student_no ||
+    !form.nick_name
+  ) {
+    ElMessage.error("请填写全部必填信息");
+    return;
+  }
+  loading.value = true;
+  try {
+    const r = await request({
+      url: "/biz/student-registration",
+      method: "post",
+      data: { ...form },
+      headers: { isToken: false },
+    });
+    localStorage.setItem("education:lastSchool", form.school_id);
+    await ElMessageBox.alert(
+      r.data.audit_required
+        ? "注册成功，请等待学校管理员审核。"
+        : "注册成功，请使用学校和学号登录。",
+      "学生注册",
+    );
+    router.push("/login");
+  } finally {
+    loading.value = false;
+    await captcha();
   }
 }
-
-const registerRules = {
-  username: [
-    { required: true, trigger: "blur", message: "请输入您的账号" },
-    { min: 2, max: 20, message: "用户账号长度必须介于 2 和 20 之间", trigger: "blur" }
-  ],
-  confirmPassword: [
-    { required: true, trigger: "blur", message: "请再次输入您的密码" },
-    { required: true, validator: equalToPassword, trigger: "blur" }
-  ],
-  code: [{ required: true, trigger: "change", message: "请输入验证码" }]
-}
-
-const codeUrl = ref("")
-const loading = ref(false)
-const captchaEnabled = ref(true)
-
-function handleRegister() {
-  proxy.$refs.registerRef.validate(valid => {
-    if (valid) {
-      loading.value = true
-      register(registerForm.value).then(res => {
-        const username = registerForm.value.username
-        ElMessageBox.alert("<font color='red'>恭喜你，您的账号 " + username + " 注册成功！</font>", "系统提示", {
-          dangerouslyUseHTMLString: true,
-          type: "success",
-        }).then(() => {
-          router.push("/login")
-        }).catch(() => {})
-      }).catch(() => {
-        loading.value = false
-        if (captchaEnabled) {
-          getCode()
-        }
-      })
-    }
-  })
-}
-
-function getCode() {
-  getCodeImg().then(res => {
-    captchaEnabled.value = res.captchaEnabled === undefined ? true : res.captchaEnabled
-    if (captchaEnabled.value) {
-      codeUrl.value = "data:image/gif;base64," + res.img
-      registerForm.value.uuid = res.uuid
-    }
-  })
-}
-
-getCode()
+onMounted(async () => {
+  schools.value = (await publicGet("tree")).data;
+  await captcha();
+});
 </script>
-
-<style lang='scss' scoped>
-.register {
+<style scoped>
+.student-register {
+  min-height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  background-image: url("../assets/images/login-background.jpg");
-  background-size: cover;
+  background: #f4f7fb;
+  padding: 30px;
 }
-.title {
-  margin: 0px auto 30px auto;
-  text-align: center;
-  color: #707070;
-}
-
-.register-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 400px;
-  padding: 25px 25px 5px 25px;
-  .el-input {
-    height: 40px;
-    input {
-      height: 40px;
-    }
-  }
-  .input-icon {
-    height: 39px;
-    width: 14px;
-    margin-left: 0px;
-  }
-}
-.register-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
-}
-.register-code {
-  width: 33%;
-  height: 40px;
-  float: right;
-  img {
-    cursor: pointer;
-    vertical-align: middle;
-  }
-}
-.el-register-footer {
-  height: 40px;
-  line-height: 40px;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  text-align: center;
-  color: #fff;
-  font-family: Arial;
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-.register-code-img {
-  height: 40px;
-  padding-left: 12px;
+.register-card {
+  width: 560px;
+  max-width: 100%;
 }
 </style>

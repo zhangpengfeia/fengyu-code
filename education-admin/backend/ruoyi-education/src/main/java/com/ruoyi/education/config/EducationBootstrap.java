@@ -19,8 +19,8 @@ import java.util.*;
 /** First-run administrator comes from environment; never resets an existing account. */
 @Component
 public class EducationBootstrap implements ApplicationRunner {
-    final ISysUserService users;final BizMapper db;final Environment env;final JdbcTemplate jdbc;
-    public EducationBootstrap(ISysUserService u,BizMapper db,Environment e,JdbcTemplate jdbc){users=u;this.db=db;env=e;this.jdbc=jdbc;}
+    final ISysUserService users;final BizMapper db;final Environment env;final JdbcTemplate jdbc;final com.ruoyi.education.service.GroupingService grouping;
+    public EducationBootstrap(ISysUserService u,BizMapper db,Environment e,JdbcTemplate jdbc,com.ruoyi.education.service.GroupingService grouping){users=u;this.db=db;env=e;this.jdbc=jdbc;this.grouping=grouping;}
     @Override @Transactional public void run(ApplicationArguments args) {
         if(env.matchesProfiles("dev")&&!env.getProperty("education.dev-captcha-enabled",Boolean.class,true)) {
             jdbc.update("UPDATE sys_config SET config_value='false' WHERE config_key='sys.account.captchaEnabled'");
@@ -44,10 +44,12 @@ public class EducationBootstrap implements ApplicationRunner {
         user(20002,"student","示范学生",11000,103,password,false,"13800000002");
         user(20003,"schooladmin","学校管理员",11000,101,password,false,null);
         db.insert(BizTable.STUDENT,new LinkedHashMap<>(Map.of("user_id",20002L,"school_id",11000L,"class_id",cid,"student_no","0001","is_trial",0)),"dev");
+        grouping.join(20002L,cid,"dev");
         db.insert(BizTable.TEACHER,new LinkedHashMap<>(Map.of("teacher_user_id",20001L,"school_id",11000L,"class_id",cid,"subject_code","ANY","start_time",new Date())),"dev");
         db.insert(BizTable.POOL,new LinkedHashMap<>(Map.of("school_id",11000L,"subject_code","ANY","start_time",new Date(),"end_time",Date.from(Instant.now().plus(Duration.ofDays(365))))),"dev");
         db.insert(BizTable.COURSEWARE,new LinkedHashMap<>(Map.of("subject_code","MATH","volume",1,"stage_code","BASIC","courseware_name","认识数字与数量","description","观察、配对、探索数字。老师可从关联游戏进入星球教学；学生只能访问个人已授权内容。","status","PUBLISHED","version_no",1,"sort_no",1)),"dev");
         long cw=((Number)db.list(new BizQuery(BizTable.COURSEWARE)).get(0).get("courseware_id")).longValue();
+        db.insert(BizTable.MATH,new LinkedHashMap<>(Map.of("courseware_id",cw,"stage","BASIC","ability","NUMBER")),"dev");
         db.linkGame(cw,1,1);db.linkGame(cw,2,2);db.version(cw,1,"{\"source\":\"development-fixture\"}","dev");
         var grant=new LinkedHashMap<String,Object>(Map.of("student_user_id",20002L,"source_type","MANUAL","status","ACTIVE","start_time",new Date(),"end_time",Date.from(Instant.now().plus(Duration.ofDays(180))),"remark","开发样例课件授权"));
         db.insert(BizTable.GRANT,grant,"dev");db.scope(((Number)grant.get("generatedId")).longValue(),Map.of("courseware_id",cw));

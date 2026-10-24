@@ -24,7 +24,9 @@ public class EducationController {
     public AjaxResult update(@PathVariable String kind,@PathVariable long id,@RequestBody Map<String,Object> body) {return AjaxResult.success(Map.of("id",catalog.save(kind,id,body)));}
     @DeleteMapping("/catalog/{kind}/{id}") @Log(title="教育资源删除",businessType=BusinessType.DELETE)
     public AjaxResult remove(@PathVariable String kind,@PathVariable long id) {catalog.remove(kind,id);return AjaxResult.success();}
-    @GetMapping("/courseware/{id}/versions") public AjaxResult versions(@PathVariable long id) {catalog.detail(BizTable.COURSEWARE,id,true);return AjaxResult.success(db.versions(id));}
+    @GetMapping("/courseware/{id}/versions") public AjaxResult versions(@PathVariable long id) {return AjaxResult.success(catalog.versions(id));}
+    @PostMapping("/courseware/{id}/customize") @Log(title="学校课件定制",businessType=BusinessType.INSERT)
+    public AjaxResult customize(@PathVariable long id,@RequestBody Map<String,Object> body){return AjaxResult.success(Map.of("id",catalog.customize(id,AccessService.id(body.get("school_id")))));}
     @PostMapping("/games/{id}/launch") @Log(title="游戏预览",isSaveResponseData=false)
     public AjaxResult launch(@PathVariable long id) {return AjaxResult.success(games.launch(id));}
     @GetMapping("/users") public Map<String,Object> users(@RequestParam(defaultValue="1") int page,@RequestParam(defaultValue="20") int size,@RequestParam(defaultValue="") String keyword,@RequestParam(required=false) String role_key,@RequestParam(required=false) String school_id,@RequestParam(required=false) String class_id) {return accounts.list(page,size,keyword,role_key,school_id,class_id);}

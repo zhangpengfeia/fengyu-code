@@ -34,8 +34,17 @@ public class GrantService {
             long cid=id(payload.get("courseware_id"));var c=db.one(BizTable.COURSEWARE,cid);
             if(c==null||!"PUBLISHED".equals(c.get("status"))||(c.get("school_id")!=null&&id(c.get("school_id"))!=target.getDeptId())) throw new ServiceException("课件不在目标学生学校范围内",400);
             scope.put("courseware_id",cid);
-        } else throw new ServiceException("第一期仅支持单课件或单游戏授权",400);
-        db.insert(BizTable.GRANT,v,access.current().getUserName());long eid=id(v.get("generatedId"));db.scope(eid,scope);return eid;
+        } else if("ALL".equals(type)) scope.put("subject_code","ANY");
+        else if("SEMESTER".equals(type)) {
+            var studentRow=db.one(BizTable.STUDENT,student);scope.put("volume",studentRow.get("current_volume"));scope.put("subject_code","ANY");
+        } else if(!"RANGE".equals(type))throw new ServiceException("授权类型无效",400);
+        db.insert(BizTable.GRANT,v,access.current().getUserName());long eid=id(v.get("generatedId"));
+        if("RANGE".equals(type)) {
+            if(!(payload.get("permission_range") instanceof Map<?,?> raw))throw new ServiceException("权限范围须为JSON对象",400);
+            Map<String,Object> range=new LinkedHashMap<>();raw.forEach((k,value)->range.put(k.toString(),value));ActivationService.validateRange(range);
+            for(Object volume:(List<?>)range.get("volumes"))for(Object subject:(List<?>)range.get("subjects"))for(Object stage:(List<?>)range.get("stages"))db.scope(eid,Map.of("volume",volume,"subject_code",subject,"stage_code",stage));
+        } else db.scope(eid,scope);
+        return eid;
     }
     @Transactional
     public void revoke(long eid,String reason) {

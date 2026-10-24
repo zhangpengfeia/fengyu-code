@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 root=Path(__file__).resolve().parents[1]
-s='\n'.join((root/'sql'/n).read_text() for n in ['V001__ruoyi_baseline.sql','V002__education_schema.sql','V003__menus_and_catalog.sql'])
+s='\n'.join((root/'sql'/n).read_text() for n in ['V001__ruoyi_baseline.sql','V002__education_schema.sql','V003__menus_and_catalog.sql','V004__learning_business.sql','V005__learning_menus.sql'])
 s=re.sub(r'\)\s*engine=innodb[^;]*;',');',s,flags=re.I)
 s=re.sub(r'\b(bigint|int|tinyint|smallint)\(\d+\)',r'\1',s,flags=re.I)
 s=re.sub(r"\bcomment\s*(?:=\s*)?'[^']*'",'',s,flags=re.I)

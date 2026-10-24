@@ -113,9 +113,15 @@
         ><el-form-item label="授权类型"
           ><el-radio-group v-model="form.scope_type"
             ><el-radio value="COURSEWARE">课件</el-radio
-            ><el-radio value="GAME">独立游戏</el-radio></el-radio-group
+            ><el-radio value="GAME">独立游戏</el-radio
+            ><el-radio value="SEMESTER">当前学期</el-radio
+            ><el-radio value="RANGE">指定范围</el-radio
+            ><el-radio value="ALL">全量</el-radio></el-radio-group
           ></el-form-item
-        ><el-form-item label="指定资源" required
+        ><el-form-item
+          v-if="['GAME', 'COURSEWARE'].includes(form.scope_type)"
+          label="指定资源"
+          required
           ><el-select
             v-if="form.scope_type === 'COURSEWARE'"
             v-model="form.courseware_id"
@@ -139,6 +145,15 @@
               :key="r.game_id"
               :value="String(r.game_id)"
               :label="r.game_name" /></el-select></el-form-item
+        ><el-form-item
+          v-if="form.scope_type === 'RANGE'"
+          label="权限范围JSON"
+          required
+          ><el-input
+            v-model="rangeText"
+            type="textarea"
+            :rows="4"
+            placeholder='{"volumes":[1],"subjects":["MATH"],"stages":["ANY"]}' /></el-form-item
         ><el-form-item label="开始时间" required
           ><el-date-picker
             v-model="form.start_time"
@@ -225,12 +240,14 @@ async function open() {
     await listCatalog("games", { page: 1, size: 100, status: "PUBLISHED" })
   ).rows.filter((g) => g.access_policy === "STUDENT");
 }
+const rangeText = ref('{"volumes":[1],"subjects":["MATH"],"stages":["ANY"]}');
 async function save() {
   if (
     !form.value.remark ||
-    !(form.value.scope_type === "GAME"
-      ? form.value.game_id
-      : form.value.courseware_id) ||
+    (["GAME", "COURSEWARE"].includes(form.value.scope_type) &&
+      !(form.value.scope_type === "GAME"
+        ? form.value.game_id
+        : form.value.courseware_id)) ||
     !form.value.start_time ||
     !form.value.end_time
   ) {
@@ -239,7 +256,17 @@ async function save() {
   }
   saving.value = true;
   try {
+    let permission_range;
+    if (form.value.scope_type === "RANGE") {
+      try {
+        permission_range = JSON.parse(rangeText.value);
+      } catch {
+        ElMessage.error("权限范围JSON格式无效");
+        return;
+      }
+    }
     await grant({
+      permission_range,
       ...form.value,
       student_user_id: studentId.value,
       start_time: new Date(form.value.start_time).toISOString(),

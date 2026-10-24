@@ -12,8 +12,10 @@ public class BizSql {
     private static String where(BizQuery q) {
         StringBuilder s = new StringBuilder(" WHERE del_flag='0'");
         q.filters.forEach((k,v)-> {
+            if(q.table==BizTable.COURSEWARE&&"ability".equals(k)) {s.append(" AND EXISTS(SELECT 1 FROM biz_courseware_math m WHERE m.courseware_id=biz_courseware_base.courseware_id AND m.del_flag='0' AND m.ability=#{q.filters.ability})");return;}
             if (!q.table.writable.contains(k) && !q.table.id.equals(k)) throw new IllegalArgumentException("Invalid filter");
-            s.append(" AND ").append(k).append("=#{q.filters.").append(k).append("}");
+            if(q.table==BizTable.MATERIAL&&"material_tag".equals(k))s.append(" AND FIND_IN_SET(#{q.filters.material_tag},material_tag)>0");
+            else s.append(" AND ").append(k).append("=#{q.filters.").append(k).append("}");
         });
         if(q.keyword != null && !q.keyword.isBlank()) s.append(" AND ").append(q.table.name).append(" LIKE CONCAT('%',#{q.keyword},'%')");
         if(q.ids != null) s.append(q.ids.isEmpty()?" AND 1=0":" AND "+q.table.id+" IN ("+in("ids",q.ids.size())+")");

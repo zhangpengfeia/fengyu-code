@@ -45,11 +45,30 @@
           ><el-button @click="reset">重置</el-button></el-form-item
         ></el-form
       >
+      <el-space wrap style="margin: 12px 0">
+        <el-button v-hasPermi="['biz:user:import']" @click="importDialog = true"
+          >批量导入</el-button
+        >
+        <el-button
+          v-hasPermi="['biz:user:resetPwd']"
+          :disabled="!selected.length"
+          @click="batchReset"
+          >批量重置密码</el-button
+        >
+      </el-space>
       <div class="edu-table-caption">
         <b>用户列表</b><span>共 {{ total }} 位用户</span>
       </div>
-      <el-table v-loading="loading" :data="rows" stripe
+      <el-table
+        v-loading="loading"
+        :data="rows"
+        stripe
+        @selection-change="(v) => (selected = v)"
         ><el-table-column
+          type="selection"
+          width="45"
+          :selectable="(row) => editable(row)"
+        /><el-table-column
           prop="user_id"
           label="ID"
           width="90"
@@ -119,6 +138,46 @@
         v-model:limit="query.size"
         @pagination="load"
     /></el-card>
+    <el-dialog v-model="importDialog" title="批量导入老师或学生" width="650px">
+      <p>
+        使用同一模板填写身份，学生按学校＋学号判重，老师按账号判重。任意一行失败则整批回滚。
+      </p>
+      <el-button @click="downloadTemplate">下载Excel模板</el-button>
+      <el-select v-model="importMode" style="width: 160px; margin: 12px"
+        ><el-option value="SKIP" label="跳过重复" /><el-option
+          value="OVERWRITE"
+          label="覆盖更新"
+      /></el-select>
+      <input
+        type="file"
+        accept=".xlsx,.xls"
+        @change="(e) => (importFile = e.target.files[0])"
+      />
+      <el-button :loading="importBusy" type="primary" @click="uploadAccounts"
+        >开始导入</el-button
+      >
+      <el-table v-if="importResults.length" :data="importResults"
+        ><el-table-column prop="row" label="行号" /><el-table-column
+          prop="status"
+          label="结果" /><el-table-column
+          prop="user_name"
+          label="账号" /><el-table-column
+          prop="temporary_password"
+          label="初始密码 请妥善保存"
+          min-width="250"
+      /></el-table>
+    </el-dialog>
+    <el-dialog
+      v-model="batchResultDialog"
+      title="批量密码重置结果"
+      width="700px"
+      ><p>请安全保存并分发临时密码，用户下次登录须修改密码。</p>
+      <el-table :data="batchResults"
+        ><el-table-column prop="user_id" label="用户ID" /><el-table-column
+          prop="temporary_password"
+          label="临时密码"
+          min-width="320" /></el-table
+    ></el-dialog>
     <el-dialog
       v-model="dialog"
       :title="formId ? '编辑用户' : '新增用户'"
@@ -150,14 +209,25 @@
           </div></el-form-item
         >
         <el-form-item label="学校" prop="school_id"
-          ><el-select v-model="form.school_id" :disabled="!!formId" filterable
+          ><el-select
+            v-model="form.school_id"
+            :disabled="!!formId && form.role_key !== 'edu_student'"
+            filterable
             ><el-option
               v-for="s in opts.schools"
               :key="s.school_id"
               :label="s.school_name"
               :value="String(s.school_id)" /></el-select
         ></el-form-item>
-        <template v-if="form.role_key === 'edu_student'"
+        <template v-if="form.role_key === 'edu_student'">
+          <el-form-item label="当前册次"
+            ><el-input-number v-model="form.current_volume" :min="1" :max="12"
+          /></el-form-item>
+          <el-form-item label="试用账号"
+            ><el-switch
+              v-model="form.is_trial"
+              :active-value="1"
+              :inactive-value="0" /></el-form-item
           ><el-form-item label="学号" prop="student_no"
             ><el-input v-model="form.student_no" maxlength="32" />
             <div class="edu-field-hint">
@@ -263,7 +333,8 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import request from "@/utils/request";
+import { ref, reactive, computed, onMounted, getCurrentInstance } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import {
   listUsers,
@@ -274,6 +345,54 @@ import {
   labels,
 } from "@/api/education";
 import useUserStore from "@/store/modules/user";
+const selected = ref([]),
+  importDialog = ref(false),
+  importMode = ref("SKIP"),
+  importFile = ref(null),
+  importBusy = ref(false),
+  importResults = ref([]),
+  batchResultDialog = ref(false),
+  batchResults = ref([]);
+const batchProxy = getCurrentInstance().proxy;
+function downloadTemplate() {
+  batchProxy.download("/biz/users/batch/template", {}, "教育账号模板.xlsx");
+}
+async function uploadAccounts() {
+  if (!importFile.value) {
+    ElMessage.error("请选择Excel文件");
+    return;
+  }
+  importBusy.value = true;
+  try {
+    const data = new FormData();
+    data.append("file", importFile.value);
+    data.append("mode", importMode.value);
+    importResults.value = (
+      await request({ url: "/biz/users/batch/import", method: "post", data })
+    ).data;
+    await load();
+  } finally {
+    importBusy.value = false;
+  }
+}
+async function batchReset() {
+  const { value } = await ElMessageBox.prompt(
+    "输入统一新密码，留空则为每人生成随机临时密码。",
+    "批量重置密码",
+    { inputType: "password" },
+  );
+  batchResults.value = (
+    await request({
+      url: "/biz/users/batch/reset",
+      method: "post",
+      data: {
+        ids: selected.value.map((r) => r.user_id),
+        password: value || "",
+      },
+    })
+  ).data;
+  batchResultDialog.value = true;
+}
 const store = useUserStore(),
   opts = reactive({ schools: [], classes: [] }),
   query = reactive({

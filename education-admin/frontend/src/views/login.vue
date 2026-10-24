@@ -19,17 +19,27 @@
         <div class="login-small-brand">智慧教育 · 管理工作台</div>
         <h2>欢迎登录</h2>
         <p class="login-description">使用你的账号进入教学空间</p>
+        <el-alert
+          v-if="lockedSchool"
+          :title="schoolName"
+          :closable="false"
+          type="info"
+          style="margin-bottom: 16px"
+        />
         <el-form
           ref="formRef"
           :model="form"
           label-position="top"
           @submit.prevent="submit"
-          ><el-form-item label="登录方式"
+          ><el-form-item v-if="!lockedSchool" label="登录方式"
             ><el-segmented
               v-model="form.mode"
               :options="modes"
+              @change="autoDetect = false"
               block /></el-form-item
-          ><el-form-item v-if="form.mode === 'STUDENT'" label="学校ID"
+          ><el-form-item
+            v-if="form.mode === 'STUDENT' && !lockedSchool"
+            label="学校ID"
             ><el-input
               v-model="form.school_id"
               :disabled="lockedSchool"
@@ -87,7 +97,10 @@
             >登录工作台</el-button
           ></el-form
         >
-        <p class="login-help">忘记密码或尚未开通账号？请联系学校管理员。</p>
+        <p class="login-help">
+          <router-link to="/register">学生注册</router-link> ·
+          忘记密码或尚未开通账号？请联系学校管理员。
+        </p>
         <div class="login-note">
           首次使用管理员交付的初始密码登录后，请完成密码修改。
         </div>
@@ -97,7 +110,7 @@
   </main>
 </template>
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage } from "element-plus";
 import { getCodeImg } from "@/api/login";
@@ -125,6 +138,18 @@ const form = reactive({
   code: "",
   uuid: "",
 });
+const autoDetect = ref(true);
+watch(
+  () => form.username,
+  (value) => {
+    if (!autoDetect.value || lockedSchool.value) return;
+    form.mode = /^1[3-9]\d{9}$/.test(value)
+      ? "PHONE"
+      : /^\d+$/.test(value)
+        ? "STUDENT"
+        : "ACCOUNT";
+  },
+);
 async function captcha() {
   try {
     const r = await getCodeImg();

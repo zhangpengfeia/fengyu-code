@@ -73,6 +73,7 @@ public class AuthController {
     }
     @Anonymous @GetMapping("/school/{code}") public AjaxResult school(@PathVariable String code) {
         var q=new BizQuery(BizTable.SCHOOL).eq("school_code",code);var rows=db.list(q);
+        if(code.matches("[0-9]{1,18}")){var school=db.one(BizTable.SCHOOL,Long.parseLong(code));if(school!=null)rows=List.of(school);}
         if(rows.isEmpty()) throw new ServiceException("学校入口不存在",404);var s=rows.get(0);access.schoolActive(id(s.get("school_id")));
         return AjaxResult.success(Map.of("school_id",s.get("school_id"),"school_name",s.get("school_name")));
     }

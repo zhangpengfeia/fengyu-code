@@ -14,8 +14,8 @@ import static com.ruoyi.education.service.AccessService.*;
 
 @Service
 public class AccountService {
-    final BizMapper db;final AccessService access;final ISysUserService users;
-    public AccountService(BizMapper db,AccessService access,ISysUserService users) {this.db=db;this.access=access;this.users=users;}
+    final BizMapper db;final AccessService access;final ISysUserService users;final GroupingService grouping;
+    public AccountService(BizMapper db,AccessService access,ISysUserService users,GroupingService grouping) {this.db=db;this.access=access;this.users=users;this.grouping=grouping;}
     public static String temporaryPassword() {
         byte[] b=new byte[15];new SecureRandom().nextBytes(b);
         return "Aa7!"+Base64.getUrlEncoder().withoutPadding().encodeToString(b);
@@ -68,7 +68,7 @@ public class AccountService {
         if(!List.of("edu_student","edu_teacher","edu_school").contains(role)||(!actor.isAdmin()&&"edu_school".equals(role))) deny();
         if(uid!=null && target.getRoles().stream().noneMatch(r->role.equals(r.getRoleKey()))) throw new ServiceException("现有账号身份不可直接切换，请单独建立账号",400);
         String name=CatalogService.str(v,"nick_name",30);
-        if(uid!=null && target.getDeptId()!=school) throw new ServiceException("转校请使用归属迁移流程，本期不开放直接修改学校",400);
+        if(uid!=null && target.getDeptId()!=school && !"edu_student".equals(role)) throw new ServiceException("仅学生支持直接转校",400);
         target.setNickName(name);target.setDeptId(school);target.setStatus(Objects.toString(v.get("status"),"0"));
         if(!List.of("0","1").contains(target.getStatus())) throw new ServiceException("状态无效",400);
         if(uid!=null&&uid==actor.getUserId()&&"1".equals(target.getStatus())) throw new ServiceException("不能停用当前账号",400);
@@ -89,8 +89,10 @@ public class AccountService {
             long cid=id(v.get("class_id"));var cls=db.one(BizTable.CLASS,cid);
             if(cls==null||id(cls.get("school_id"))!=school||!"ACTIVE".equals(cls.get("status"))) throw new ServiceException("班级不存在、已归档或不属于该学校",400);
             String no=CatalogService.str(v,"student_no",32);var old=db.one(BizTable.STUDENT,uid);
-            var student=new LinkedHashMap<String,Object>(Map.of("user_id",uid,"school_id",school,"class_id",cid,"student_no",no,"is_trial",0));
+            var student=new LinkedHashMap<String,Object>(Map.of("user_id",uid,"school_id",school,"class_id",cid,"student_no",no,"is_trial",v.getOrDefault("is_trial",old==null?0:old.get("is_trial")),"current_volume",v.getOrDefault("current_volume",old==null?id(cls.get("grade"))*2-1:old.get("current_volume"))));
+            LearningSupport.integer(student,"current_volume",1,12);LearningSupport.integer(student,"is_trial",0,1);
             if(old==null) db.insert(BizTable.STUDENT,student,actor.getUserName());else db.update(BizTable.STUDENT,uid,student,actor.getUserName());
+            grouping.join(uid,cid,actor.getUserName());
             if(old==null||id(old.get("class_id"))!=cid) {
                 db.closeHistory(uid);var history=new LinkedHashMap<String,Object>(Map.of("student_user_id",uid,"school_id",school,"class_id",cid,"start_time",new Date(),"change_reason",old==null?"入班":"转班"));
                 db.insert(BizTable.HISTORY,history,actor.getUserName());

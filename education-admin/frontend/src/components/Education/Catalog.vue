@@ -16,9 +16,54 @@
         }}</el-button
       >
     </div>
+    <template v-if="kind === 'schools'"
+      ><el-alert
+        v-for="notice in expiryNotices"
+        :key="notice.notice_id"
+        :title="notice.notice_title"
+        :description="notice.notice_content"
+        type="warning"
+        :closable="false"
+        style="margin-bottom: 12px"
+    /></template>
     <el-card shadow="never" class="edu-card"
-      ><el-form :inline="true" @submit.prevent="search"
-        ><el-form-item label="关键词"
+      ><el-form :inline="true" @submit.prevent="search">
+        <template v-if="kind === 'courseware'">
+          <el-form-item label="学科"
+            ><el-select
+              v-model="query.subject_code"
+              clearable
+              style="width: 130px"
+              ><el-option
+                v-for="(label, value) in subjects"
+                :key="value"
+                :value="value"
+                :label="label" /></el-select
+          ></el-form-item>
+          <el-form-item label="册次"
+            ><el-input-number v-model="query.volume" :min="1" :max="12"
+          /></el-form-item>
+          <el-form-item label="阶次"
+            ><el-select
+              v-model="query.stage_code"
+              clearable
+              style="width: 130px"
+              ><el-option
+                v-for="d in biz_course_stage"
+                :key="d.value"
+                :value="d.value"
+                :label="d.label" /></el-select
+          ></el-form-item>
+          <el-form-item label="能力维度"
+            ><el-select v-model="query.ability" clearable style="width: 160px"
+              ><el-option
+                v-for="d in biz_math_ability"
+                :key="d.value"
+                :value="d.value"
+                :label="d.label" /></el-select
+          ></el-form-item>
+        </template>
+        <el-form-item label="关键词"
           ><el-input
             v-model="query.keyword"
             :placeholder="`搜索${config.title}名称`"
@@ -69,7 +114,15 @@
           ><el-button icon="Refresh" @click="reset"
             >重置</el-button
           ></el-form-item
-        ></el-form
+        >
+      </el-form>
+      <el-button
+        v-if="kind === 'classes'"
+        v-hasPermi="['biz:class:edit']"
+        :disabled="!selected.length"
+        type="warning"
+        @click="archiveClasses"
+        >毕业归档所选班级</el-button
       >
       <div class="edu-table-caption">
         <b>{{ config.title }}列表</b><span>共 {{ total }} 条记录</span
@@ -81,7 +134,13 @@
         stripe
         empty-text="当前筛选条件下暂无可用资源"
         :row-key="config.id"
+        @selection-change="(v) => (selected = v)"
       >
+        <el-table-column
+          v-if="kind === 'classes'"
+          type="selection"
+          :selectable="(row) => row.status === 'ACTIVE'"
+        />
         <el-table-column :prop="config.id" label="ID" width="85" />
         <el-table-column
           :label="kind === 'pool' ? '学科范围' : '名称'"
@@ -162,7 +221,7 @@
         >
         <el-table-column
           label="操作"
-          :width="['games', 'courseware'].includes(kind) ? 220 : 120"
+          :width="['games', 'courseware'].includes(kind) ? 300 : 120"
           fixed="right"
           ><template #default="{ row }">
             <el-button
@@ -182,6 +241,14 @@
               icon="View"
               @click="previewCourseware(row)"
               >预览</el-button
+            >
+            <el-button
+              v-if="kind === 'courseware' && !row.school_id"
+              v-hasPermi="['biz:courseware:add']"
+              link
+              type="primary"
+              @click="customize(row)"
+              >学校定制</el-button
             >
             <el-button
               v-hasPermi="[`biz:${config.module}:edit`]"
@@ -242,9 +309,12 @@
           <el-select
             v-if="field.type === 'select'"
             v-model="form[field.key]"
+            :disabled="field.key === 'subject_code' && !!props.subject"
             style="width: 100%"
             ><el-option
-              v-for="(label, value) in field.options"
+              v-for="(label, value) in field.key === 'subject_code'
+                ? subjects
+                : field.options"
               :key="value"
               :label="label"
               :value="value"
@@ -300,9 +370,83 @@
               !!formId && ['game_code', 'school_id'].includes(field.key)
             "
           />
+          <el-space v-if="kind === 'schools' && field.key === 'expire_time'"
+            ><el-input-number
+              v-model="expiryDays"
+              :min="1"
+              :max="3650"
+            /><el-button
+              @click="
+                form.expire_time = new Date(Date.now() + expiryDays * 86400000)
+              "
+              >按天数计算</el-button
+            ></el-space
+          >
           <div v-if="field.hint" class="edu-field-hint">{{ field.hint }}</div>
-        </el-form-item></el-form
-      >
+        </el-form-item>
+        <template v-if="kind === 'courseware' && form.extension">
+          <el-divider>学科扩展</el-divider>
+          <el-form-item label="封面"
+            ><image-upload v-model="form.cover_url" :limit="1"
+          /></el-form-item>
+          <template v-if="form.subject_code === 'MATH'">
+            <el-form-item label="能力维度" required
+              ><el-select v-model="form.extension.ability"
+                ><el-option
+                  v-for="d in biz_math_ability"
+                  :key="d.value"
+                  :value="d.value"
+                  :label="d.label" /></el-select
+            ></el-form-item>
+            <el-form-item label="讨论图片"
+              ><image-upload v-model="form.extension.discuss_img" :limit="1"
+            /></el-form-item>
+            <el-form-item label="讨论内容"
+              ><editor
+                v-model="form.extension.discuss_content"
+                :min-height="160"
+            /></el-form-item>
+            <el-form-item label="介绍视频"
+              ><file-upload
+                v-model="form.extension.intro_video"
+                :limit="1"
+                :file-type="['mp4', 'webm']"
+                :file-size="100"
+            /></el-form-item>
+            <el-form-item label="互动游戏地址"
+              ><el-input
+                v-model="form.extension.game_url"
+                placeholder="HTTPS地址"
+            /></el-form-item>
+            <el-form-item label="教师用书PDF"
+              ><file-upload
+                v-model="form.extension.teacher_book"
+                :limit="1"
+                :file-type="['pdf']"
+                :file-size="50"
+            /></el-form-item>
+          </template>
+          <template v-if="form.subject_code === 'READING'">
+            <el-form-item label="配音素材"
+              ><el-select
+                v-model="form.extension.dubbing_material_id"
+                filterable
+                clearable
+                remote
+                :remote-method="searchMaterials"
+                @visible-change="(v) => v && searchMaterials('')"
+                ><el-option
+                  v-for="m in materials"
+                  :key="m.material_id"
+                  :value="m.material_id"
+                  :label="m.title" /></el-select
+            ></el-form-item>
+            <el-form-item label="课件流程JSON" required
+              ><JsonConfigEditor v-model="form.extension.config_json"
+            /></el-form-item>
+          </template>
+        </template>
+      </el-form>
       <template #footer
         ><el-button @click="dialog = false">取消</el-button
         ><el-button type="primary" :loading="saving" @click="save"
@@ -322,6 +466,54 @@
         <p style="white-space: pre-wrap">
           {{ preview.description || "暂无课件说明" }}
         </p>
+        <el-image
+          v-if="preview.cover_url"
+          :src="preview.cover_url"
+          fit="contain"
+          style="max-width: 100%; max-height: 220px" />
+        <template v-if="preview.subject_code === 'MATH' && preview.extension">
+          <p v-if="preview.extension.ability">
+            能力维度：{{
+              biz_math_ability.find(
+                (d) => d.value === preview.extension.ability,
+              )?.label || preview.extension.ability
+            }}
+          </p>
+          <el-image
+            v-if="preview.extension.discuss_img"
+            :src="preview.extension.discuss_img"
+            fit="contain"
+            style="max-height: 300px"
+          />
+          <editor
+            v-if="preview.extension.discuss_content"
+            :model-value="preview.extension.discuss_content"
+            :read-only="true"
+            :min-height="120"
+          />
+          <video
+            v-if="preview.extension.intro_video"
+            :src="preview.extension.intro_video"
+            controls
+            preload="metadata"
+            style="width: 100%; margin-top: 12px"
+          />
+          <p v-if="preview.extension.teacher_book">
+            <el-link
+              :href="preview.extension.teacher_book"
+              target="_blank"
+              rel="noopener noreferrer"
+              type="primary"
+              >查看教师用书PDF</el-link
+            >
+          </p>
+        </template>
+        <template v-if="preview.subject_code === 'READING' && preview.extension"
+          ><h3>课件流程</h3>
+          <pre style="white-space: pre-wrap">{{
+            preview.extension.config_json
+          }}</pre>
+        </template>
         <h3>互动游戏</h3>
         <el-space wrap
           ><el-button
@@ -343,8 +535,11 @@
   </div>
 </template>
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, getCurrentInstance } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import JsonConfigEditor from "./JsonConfigEditor.vue";
+import request from "@/utils/request";
+import { learningPost, learningGet } from "@/api/learning";
 import { configs } from "./catalog-config";
 import {
   listCatalog,
@@ -354,12 +549,35 @@ import {
   options,
   launchGame,
   labels,
-  subjects,
+  subjects as defaultSubjects,
   statusType,
 } from "@/api/education";
-const props = defineProps({ kind: { type: String, required: true } });
+const { biz_math_ability, biz_course_stage, biz_subject } =
+  getCurrentInstance().proxy.useDict(
+    "biz_math_ability",
+    "biz_course_stage",
+    "biz_subject",
+  );
+const subjects = computed(() =>
+  biz_subject.value.length
+    ? Object.fromEntries(biz_subject.value.map((d) => [d.value, d.label]))
+    : defaultSubjects,
+);
+const expiryNotices = ref([]);
+const materials = ref([]),
+  selected = ref([]),
+  expiryDays = ref(180);
+const props = defineProps({
+  kind: { type: String, required: true },
+  subject: { type: String, default: "" },
+});
 const kind = props.kind,
-  config = configs[kind];
+  config = {
+    ...configs[kind],
+    ...(props.subject
+      ? { title: props.subject === "MATH" ? "数学课件" : "阅读课件" }
+      : {}),
+  };
 const rows = ref([]),
   total = ref(0),
   loading = ref(false),
@@ -380,6 +598,10 @@ const query = reactive({
   status: "",
   source_type: "",
   category_code: "",
+  subject_code: props.subject,
+  volume: undefined,
+  stage_code: "",
+  ability: "",
 });
 const rules = computed(() =>
   Object.fromEntries(
@@ -401,7 +623,10 @@ const schoolName = (id) =>
 async function load() {
   loading.value = true;
   try {
-    const r = await listCatalog(kind, query);
+    const r = await listCatalog(kind, {
+      ...query,
+      ...(props.subject ? { subject_code: props.subject } : {}),
+    });
     rows.value = r.rows;
     total.value = Number(r.total);
   } finally {
@@ -419,6 +644,10 @@ function reset() {
     status: "",
     source_type: "",
     category_code: "",
+    subject_code: props.subject,
+    volume: undefined,
+    stage_code: "",
+    ability: "",
   });
   load();
 }
@@ -433,6 +662,14 @@ async function edit(row) {
   } else if (schoolOptions.value.length === 1)
     form.value.school_id = String(schoolOptions.value[0].school_id);
   if (form.value.school_id) form.value.school_id = String(form.value.school_id);
+  if (props.subject) form.value.subject_code = props.subject;
+  if (kind === "courseware")
+    form.value.extension = {
+      stage: form.value.stage_code || "BASIC",
+      ability: "",
+      config_json: "{}",
+      ...(form.value.extension || {}),
+    };
   dialog.value = true;
 }
 async function save() {
@@ -440,6 +677,18 @@ async function save() {
   saving.value = true;
   try {
     const data = { ...form.value };
+    if (kind === "courseware" && data.subject_code === "MATH")
+      data.extension = { ...data.extension, stage: data.stage_code };
+    if (kind === "courseware" && data.subject_code === "READING") {
+      try {
+        const parsed = JSON.parse(data.extension.config_json);
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object")
+          throw new Error();
+      } catch {
+        ElMessage.error("课件流程须为有效JSON对象");
+        return;
+      }
+    }
     for (const f of config.fields)
       if (f.type === "date" && data[f.key])
         data[f.key] = new Date(data[f.key]).toISOString();
@@ -487,7 +736,57 @@ async function previewCourseware(row) {
   preview.value = r.data;
   coursewareDialog.value = true;
 }
+async function customize(row) {
+  const { value } = await ElMessageBox.prompt(
+    "请输入有权限管理的学校ID",
+    "建立学校定制",
+  );
+  await request({
+    url: `/biz/courseware/${row.courseware_id}/customize`,
+    method: "post",
+    data: { school_id: value },
+  });
+  ElMessage.success("已建立学校定制草稿");
+  await load();
+}
+async function archiveClasses() {
+  await ElMessageBox.confirm(
+    "归档后所选班级的学生账号会停用，历史数据保留。确认继续？",
+    "毕业归档",
+  );
+  await learningPost(
+    "classes/archive",
+    selected.value.map((c) => c.class_id),
+  );
+  ElMessage.success("归档完成");
+  await load();
+}
+async function searchMaterials(keyword = "") {
+  const r = await learningGet("dubbing/materials", {
+    volume: form.value.volume,
+    status: "0",
+    keyword,
+    size: 100,
+  });
+  materials.value = r.rows.filter((m) =>
+    m.material_tag.split(",").some((t) => ["01", "03"].includes(t)),
+  );
+}
+function formatJson() {
+  try {
+    form.value.extension.config_json = JSON.stringify(
+      JSON.parse(form.value.extension.config_json),
+      null,
+      2,
+    );
+    ElMessage.success("JSON格式有效");
+  } catch {
+    ElMessage.error("JSON格式无效");
+  }
+}
 onMounted(async () => {
+  if (kind === "schools")
+    expiryNotices.value = (await learningGet("notices")).data;
   await load();
   const o = await options();
   schoolOptions.value = o.data.schools;

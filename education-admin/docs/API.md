@@ -35,3 +35,50 @@ API认证沿用若依 `Authorization: Bearer <token>`，Token从Redis恢复且�
 内部发布须已有 `games/{game_code}/{version_no}/index.html` 和匹配的版本manifest。无源码发布上传接口；由受信任构建脚本或运维部署版本目录。游戏不能通过前端回调自行增加正式积分，本期没有启用正式积分回调。
 
 发布健康检查：匿名 `GET /biz/auth/status`，数据库账号初始化前返回503，完成后返回 `status=UP` 与 `release` 标记，不返回账号或密钥。网站 `/healthz` 代理到该接口。
+
+## V1.0 新增业务接口
+
+接口仍使用原生JWT与统一业务异常，业务控制器为`LearningController`、`StudentRegistrationController`和`AccountBatchController`。
+
+| 方法 | 路径 | 作用 |
+| --- | --- | --- |
+| GET | `/biz/student-registration/tree` | 可注册学校的部门级联树，匿名 |
+| GET | `/biz/student-registration/classes?school_id=` | 可注册班级，匿名 |
+| POST | `/biz/student-registration` | 学生注册，固定学生角色并验证验证码 |
+| POST | `/biz/users/batch/template` | 账号Excel模板 |
+| POST | `/biz/users/batch/import` | multipart字段file、mode，SKIP或OVERWRITE |
+| POST | `/biz/users/batch/reset` | ids数组与可选password |
+| POST | `/biz/courseware/{id}/customize` | 从全局模板建立指定school_id的草稿 |
+| GET/POST | `/biz/learning/dubbing/materials` | 素材列表／新增 |
+| PUT/DELETE | `/biz/learning/dubbing/materials/{id}` | 素材修改／逻辑删除 |
+| GET | `/biz/learning/dubbing/exam-config` | 册次抽题配置 |
+| PUT | `/biz/learning/dubbing/exam-config/{id}` | 仅超级管理员修改 |
+| POST | `/biz/learning/exam/draw` | volume抽题，返回exam_ticket |
+| POST | `/biz/learning/dubbing/score` | material_id、dubbing_type、audio_url；测评需exam_ticket，课件配音需courseware_id |
+| GET | `/biz/learning/records` | 按班级、学生、册次、配音类型查询 |
+| POST | `/biz/learning/records/export` | 同范围Excel导出 |
+| GET/POST | `/biz/learning/activation/batches` | 激活码批次列表／生成 |
+| GET | `/biz/learning/activation/batches/{id}/codes` | 批次码明细，须导出权限 |
+| POST | `/biz/learning/activation/batches/{id}/export` | 激活码Excel导出 |
+| POST | `/biz/learning/activation/redeem` | 学生用code一次性兑换 |
+| GET | `/biz/learning/groups?class_id=` | 当前班级小组及成员 |
+| POST | `/biz/learning/groups/regroup` | class_id、size，随机重分并保留历史 |
+| POST | `/biz/learning/groups/add` | 新增小组 |
+| POST | `/biz/learning/groups/remove` | 删除小组并将成员转入target_group_id |
+| POST | `/biz/learning/groups/move` | 手动调整学生组别 |
+| GET | `/biz/learning/pk` | class_id、courseware_id、mode、stage查询赛程 |
+| POST | `/biz/learning/pk/match` | 同上参数，整体随机匹配 |
+| POST | `/biz/learning/pk/{id}/result` | winner_id，null表示撤销 |
+| POST | `/biz/learning/pk/clear` | 重置赛程，保留积分 |
+| POST | `/biz/learning/scores` | student_id、courseware_id、stage、score、source、event_key |
+| POST | `/biz/learning/scores/{id}/reverse` | 撤销手动积分，PK积分由PK接口撤销 |
+| POST | `/biz/learning/scores/all-plus` | class_id、courseware_id，全班事务加分 |
+| GET | `/biz/learning/scores?student_id=` | 学生积分流水 |
+| GET | `/biz/learning/ranking` | 班级课件／册次榜 |
+| GET | `/biz/learning/ranking/school` | school_id及可选grade、volume，管理员范围内榜单 |
+| POST | `/biz/learning/classes/archive` | 班级ID数组，毕业归档 |
+| GET | `/biz/learning/notices` | 本人负责学校的到期提醒 |
+
+课件保存JSON新增`extension`对象；数学包含`stage`、`ability`及媒体字段，阅读包含`dubbing_material_id`、`config_json`。范围授权的`scope_type`支持`SEMESTER`、`RANGE`、`ALL`；`RANGE`的`permission_range`为包含`volumes`、`subjects`、`stages`数组的对象。
+
+没有配置真实`DubbingScorer`时，评分返回503。请求内的评分字段不会被用作可信结果。部署和未覆盖范围见`REQUIREMENTS_V1_IMPLEMENTATION.md`。

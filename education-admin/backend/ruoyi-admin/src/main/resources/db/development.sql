@@ -940,3 +940,227 @@ INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5131);
 INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5132);
 INSERT INTO biz_game(game_id,game_code,game_name,category_code,source_type,entry_path,access_policy,status,version_no,description) VALUES(1,'planet','星球探索','MATH','INTERNAL','index.html','TEACHER_ONLY','PUBLISHED','v1','星球教学资源入口，仅老师及管理员可用。');
 INSERT INTO biz_game(game_id,game_code,game_name,category_code,source_type,entry_path,access_policy,status,version_no,description) VALUES(2,'number-match','数字配对','MATH','INTERNAL','index.html','STUDENT','PUBLISHED','v1','适合低年级的数字配对演示，需要单独授权。');
+
+-- V1.0 business extensions; apply once after V003. Existing data is preserved.
+ALTER TABLE sys_dept ADD COLUMN dept_type char(1) NOT NULL DEFAULT '0';
+ALTER TABLE sys_dept ADD COLUMN expire_time datetime NULL;
+CREATE INDEX ix_dept_expiry ON sys_dept(dept_type,expire_time);
+UPDATE sys_dept SET dept_type='1',expire_time=(SELECT s.expire_time FROM biz_school s WHERE s.school_id=sys_dept.dept_id) WHERE dept_id IN (SELECT school_id FROM biz_school);
+ALTER TABLE biz_student_extend ADD COLUMN total_score int NOT NULL DEFAULT 0;
+ALTER TABLE biz_student_extend ADD COLUMN volume_score text;
+ALTER TABLE biz_student_extend ADD COLUMN grade_score text;
+ALTER TABLE biz_student_extend ADD COLUMN current_volume int NOT NULL DEFAULT 1;
+ALTER TABLE biz_courseware_base ADD COLUMN cover_url varchar(1024) NOT NULL DEFAULT '';
+CREATE TABLE biz_dubbing_material (
+material_id bigint PRIMARY KEY AUTO_INCREMENT, volume int NOT NULL, title varchar(128) NOT NULL, video_url varchar(1024) NOT NULL, material_text text NOT NULL, material_tag varchar(32) NOT NULL, status char(1) NOT NULL DEFAULT '0', UNIQUE(volume,title), CHECK(volume BETWEEN 1 AND 12), INDEX ix_material(volume,status),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_courseware_math (
+courseware_id bigint PRIMARY KEY, stage varchar(32) NOT NULL, ability varchar(64) NOT NULL, discuss_img varchar(1024), discuss_content text, intro_video varchar(1024), game_url varchar(1024), teacher_book varchar(1024), FOREIGN KEY(courseware_id) REFERENCES biz_courseware_base(courseware_id),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_courseware_read (
+courseware_id bigint PRIMARY KEY, dubbing_material_id bigint, config_json text NOT NULL, FOREIGN KEY(courseware_id) REFERENCES biz_courseware_base(courseware_id), FOREIGN KEY(dubbing_material_id) REFERENCES biz_dubbing_material(material_id),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_dubbing_exam_config (
+config_id bigint PRIMARY KEY AUTO_INCREMENT, volume int NOT NULL UNIQUE, extract_scope char(1) NOT NULL DEFAULT '3', extract_num int NOT NULL DEFAULT 1, extract_mode char(1) NOT NULL DEFAULT '1', score_rule char(1) NOT NULL DEFAULT '1', status char(1) NOT NULL DEFAULT '0', CHECK(volume BETWEEN 1 AND 12), CHECK(extract_num>0),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_student_dubbing_record (
+record_id bigint PRIMARY KEY AUTO_INCREMENT, school_id bigint NOT NULL, grade int NOT NULL, class_id bigint NOT NULL, student_id bigint NOT NULL, volume int NOT NULL, material_id bigint NOT NULL, courseware_id bigint, dubbing_type char(1) NOT NULL, answer_time datetime NOT NULL, accuracy_score int NOT NULL, fluency_score int NOT NULL, completeness_score int NOT NULL, phonology_score int NOT NULL, intonation_score int NOT NULL, overall_score int NOT NULL, total_score int NOT NULL, star_num int, audio_url varchar(1024) NOT NULL, FOREIGN KEY(material_id) REFERENCES biz_dubbing_material(material_id), FOREIGN KEY(student_id) REFERENCES biz_student_extend(user_id), INDEX ix_dubbing(student_id,volume,dubbing_type,answer_time), INDEX ix_dubbing_class(school_id,class_id),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_activate_code_batch (
+batch_id bigint PRIMARY KEY AUTO_INCREMENT, batch_name varchar(128) NOT NULL, permission_type char(1) NOT NULL, permission_range text NOT NULL, valid_days int NOT NULL DEFAULT 180, total_num int NOT NULL, used_num int NOT NULL DEFAULT 0, expire_time datetime NOT NULL, school_id bigint, INDEX ix_batch_expiry(expire_time),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_activate_code (
+code_id bigint PRIMARY KEY AUTO_INCREMENT, batch_id bigint NOT NULL, code varchar(64) NOT NULL UNIQUE, status char(1) NOT NULL DEFAULT '0', student_id bigint, use_time datetime, FOREIGN KEY(batch_id) REFERENCES biz_activate_code_batch(batch_id), INDEX ix_code_batch(batch_id,status),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_class_group (
+group_id bigint PRIMARY KEY AUTO_INCREMENT, class_id bigint NOT NULL, group_name varchar(64) NOT NULL, sort int NOT NULL DEFAULT 0, is_current char(1) NOT NULL DEFAULT '1', FOREIGN KEY(class_id) REFERENCES biz_class(class_id), INDEX ix_group_class(class_id,is_current),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_student_group (
+id bigint PRIMARY KEY AUTO_INCREMENT, group_id bigint NOT NULL, student_id bigint NOT NULL, is_current char(1) NOT NULL DEFAULT '1', FOREIGN KEY(group_id) REFERENCES biz_class_group(group_id), FOREIGN KEY(student_id) REFERENCES biz_student_extend(user_id), INDEX ix_group_student(student_id,is_current),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_score_log (
+log_id bigint PRIMARY KEY AUTO_INCREMENT, student_id bigint NOT NULL, school_id bigint NOT NULL, class_id bigint NOT NULL, grade int NOT NULL, courseware_id bigint NOT NULL, subject varchar(16) NOT NULL, volume int NOT NULL, stage varchar(16) NOT NULL DEFAULT 'BASIC', lesson_id bigint, score int NOT NULL, source varchar(64) NOT NULL, operator bigint NOT NULL, event_key varchar(128) NOT NULL UNIQUE, reversal_of bigint UNIQUE, FOREIGN KEY(student_id) REFERENCES biz_student_extend(user_id), FOREIGN KEY(courseware_id) REFERENCES biz_courseware_base(courseware_id), INDEX ix_score_class(school_id,class_id,courseware_id), INDEX ix_score_student(student_id,volume),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_pk_round (
+round_id bigint PRIMARY KEY AUTO_INCREMENT, class_id bigint NOT NULL, courseware_id bigint NOT NULL, mode varchar(16) NOT NULL, stage varchar(16) NOT NULL, round_no int NOT NULL, lesson_id bigint, status varchar(16) NOT NULL DEFAULT 'ACTIVE', INDEX ix_round(class_id,courseware_id,mode,stage,status),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+CREATE TABLE biz_pk_match (
+match_id bigint PRIMARY KEY AUTO_INCREMENT, round_id bigint NOT NULL, left_id bigint NOT NULL, right_id bigint, winner_id bigint, members_json text NOT NULL, result_version int NOT NULL DEFAULT 0, FOREIGN KEY(round_id) REFERENCES biz_pk_round(round_id), INDEX ix_match_round(round_id),
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '',
+del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0
+);
+
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(1);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(2);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(3);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(4);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(5);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(6);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(7);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(8);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(9);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(10);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(11);
+INSERT INTO biz_dubbing_exam_config(volume) VALUES(12);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('学生注册是否需要审核','biz.student.register.audit','false','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('激活码绑定学校开关','biz.activation.schoolBound','false','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('默认每组人数 2至6','biz.group.size','4','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('新手积分','biz.pk.score.BASIC','1','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('能手积分','biz.pk.score.LEVEL2','2','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('大师积分','biz.pk.score.LEVEL3','3','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('1至3星评分门槛','biz.dubbing.starThresholds','60,75,90','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_config(config_name,config_key,config_value,config_type,create_by,create_time) VALUES('百度评分服务地址 由实际开通接口协议适配','biz.dubbing.baidu.endpoint','','N','migration',CURRENT_TIMESTAMP);
+INSERT INTO biz_schema_version(version_id,version_name) VALUES(4,'education-v1-business');
+
+CREATE TABLE biz_dubbing_exam_ticket (
+ticket_id varchar(64) PRIMARY KEY, student_id bigint NOT NULL, material_id bigint NOT NULL, expires_at datetime NOT NULL, used_record_id bigint,
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0,
+FOREIGN KEY(student_id) REFERENCES biz_student_extend(user_id), FOREIGN KEY(material_id) REFERENCES biz_dubbing_material(material_id), INDEX ix_exam_ticket(student_id,expires_at)
+);
+CREATE TABLE biz_school_expiry_notice (
+id bigint PRIMARY KEY AUTO_INCREMENT, school_id bigint NOT NULL, expire_time datetime NOT NULL, days_before int NOT NULL, notice_id bigint NOT NULL,
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0,
+UNIQUE(school_id,expire_time,days_before)
+);
+CREATE TABLE biz_notice_recipient (
+id bigint PRIMARY KEY AUTO_INCREMENT, notice_id bigint NOT NULL, user_id bigint NOT NULL,
+create_by varchar(64) NOT NULL DEFAULT '', create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+update_by varchar(64) NOT NULL DEFAULT '', update_time datetime NULL, remark varchar(500) NOT NULL DEFAULT '', del_flag char(1) NOT NULL DEFAULT '0', row_version bigint NOT NULL DEFAULT 0,
+UNIQUE(notice_id,user_id), INDEX ix_recipient(user_id,create_time)
+);
+
+ALTER TABLE biz_courseware_base ADD COLUMN school_scope bigint GENERATED ALWAYS AS (COALESCE(school_id,0));
+CREATE UNIQUE INDEX uk_course_scope_name ON biz_courseware_base(school_scope,subject_code,volume,courseware_name);
+-- Existing phase-one resources receive valid extension rows without rewriting their public identity.
+INSERT INTO biz_courseware_math(courseware_id,stage,ability,create_by)
+SELECT courseware_id,stage_code,'NUMBER','migration' FROM biz_courseware_base WHERE subject_code='MATH';
+INSERT INTO biz_courseware_read(courseware_id,config_json,create_by)
+SELECT courseware_id,'{}','migration' FROM biz_courseware_base WHERE subject_code='READING';
+
+-- Learning routes and action permissions, native RuoYi menu management.
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5200,'配音素材',5000,5200,'materials','education/materials/index','C','biz:dubbing:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5201,'测评配置',5000,5201,'exam-config','education/exam-config/index','C','biz:dubbing:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5202,'配音记录',5000,5202,'dubbing-records','education/dubbing-records/index','C','biz:dubbing:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5203,'激活码管理',5000,5203,'activation','education/activation/index','C','biz:activation:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5204,'课堂PK与积分',5000,5204,'classroom','education/classroom/index','C','biz:pk:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5205,'学习激活',5000,5205,'redeem','education/redeem/index','C','biz:activation:redeem','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5220,'biz:dubbing:edit',5200,5220,'#','F','biz:dubbing:edit',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5221,'biz:activation:edit',5203,5221,'#','F','biz:activation:edit',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5222,'biz:activation:export',5203,5222,'#','F','biz:activation:export',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5223,'biz:pk:edit',5204,5223,'#','F','biz:pk:edit',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5224,'biz:score:edit',5204,5224,'#','F','biz:score:edit',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5225,'biz:score:list',5204,5225,'#','F','biz:score:list',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5226,'biz:dubbing:export',5202,5226,'#','F','biz:dubbing:export',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5200);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5201);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5202);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5204);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5225);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5226);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5200);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5201);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5202);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5204);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5223);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5224);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5225);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5226);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5200);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5202);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5205);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5225);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5200);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5201);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5202);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5204);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5225);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5226);
+INSERT INTO sys_job(job_name,job_group,invoke_target,cron_expression,misfire_policy,concurrent,status,create_by,create_time,remark) VALUES('教育业务到期检查','DEFAULT','educationMaintenance.expire()','0 0 0 * * ?', '2','1','1','migration',CURRENT_TIMESTAMP,'默认暂停，确认时区后在任务管理启用；访问权限实时检查不依赖调度');
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,menu_type,perms,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5227,'账号导入',5030,1,'#','F','biz:user:import',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5227);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5227);
+-- Configurable business dictionaries. Existing API codes are retained.
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('学科','biz_subject','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'数学','MATH','biz_subject','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'阅读','READING','biz_subject','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'科创','SCIENCE','biz_subject','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(3,'中创','CREATIVE','biz_subject','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('课件阶次','biz_course_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'基础','BASIC','biz_course_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'一阶','LEVEL1','biz_course_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'二阶','LEVEL2','biz_course_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(3,'三阶','LEVEL3','biz_course_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('数学能力','biz_math_ability','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'数感与运算','NUMBER','biz_math_ability','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'图形与几何','GEOMETRY','biz_math_ability','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'逻辑推理','LOGIC','biz_math_ability','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('课堂评价','biz_pk_dimension','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'倾听','LISTEN','biz_pk_dimension','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'思考','THINK','biz_pk_dimension','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'发言','SPEAK','biz_pk_dimension','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('配音用途','biz_dubbing_tag','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'课件配套','01','biz_dubbing_tag','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'测评专用','02','biz_dubbing_tag','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'通用','03','biz_dubbing_tag','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_type(dict_name,dict_type,status,create_by,create_time) VALUES('PK阶次','biz_pk_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(0,'新手','BASIC','biz_pk_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(1,'能手','LEVEL2','biz_pk_stage','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_dict_data(dict_sort,dict_label,dict_value,dict_type,status,create_by,create_time) VALUES(2,'大师','LEVEL3','biz_pk_stage','0','migration',CURRENT_TIMESTAMP);
+
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5206,'数学课件',5000,12,'math-courseware','education/math-courseware/index','C','biz:courseware:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_menu(menu_id,menu_name,parent_id,order_num,path,component,menu_type,perms,icon,is_frame,is_cache,visible,status,create_by,create_time) VALUES(5207,'阅读课件',5000,13,'reading-courseware','education/reading-courseware/index','C','biz:courseware:list','education',1,1,'0','0','migration',CURRENT_TIMESTAMP);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5206);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(101,5207);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5206);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(102,5207);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5206);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(103,5207);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5206);
+INSERT INTO sys_role_menu(role_id,menu_id) VALUES(104,5207);
