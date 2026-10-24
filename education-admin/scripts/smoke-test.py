@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Destructive ONLY to disposable dev fixtures; never point this at a production instance."""
-import argparse,json,os,re,subprocess,urllib.request,urllib.error
+import argparse,json,os,re,subprocess,time,urllib.request,urllib.error
 from datetime import datetime,timezone,timedelta
 p=argparse.ArgumentParser();p.add_argument('--base',default='http://127.0.0.1:8081');p.add_argument('--api-prefix',default='',choices=['','/dev-api','/prod-api']);p.add_argument('--redis-cli');p.add_argument('--redis-port',default='6379');p.add_argument('--allow-development',action='store_true');args=p.parse_args()
 if not args.allow_development or not re.match(r'^http://(127\.0\.0\.1|localhost):\d+$',args.base):p.error('Only explicitly allowed loopback disposable development environments may be tested.')
@@ -97,7 +97,23 @@ status,after,_=call('/biz/users?size=100',token=admin);check('failed user creati
 status,r,_=call('/biz/users/20001/reset-password','POST',{},admin);check('teacher password reset succeeds',status==200,r)
 status,_,_=call('/biz/auth/me',token=teacher);check('old teacher bearer rejected',status==401)
 status,_,_=call('/play/planet/index.html',cookie=cookie);check('old teacher game session rejected',status==403)
-status,s,_=call('/biz/catalog/schools/11000?edit=true',token=admin);s=s['data'];s['expire_time']=(datetime.now(timezone.utc)-timedelta(seconds=2)).isoformat().replace('+00:00','Z')
+status,s,_=call('/biz/catalog/schools/11000?edit=true',token=admin)
+check('school expiry fixture loaded',status==200,s)
+s=s['data'];s['school_status']='ACTIVE'
+s['expire_time']=(datetime.now(timezone.utc)-timedelta(seconds=2)).isoformat().replace('+00:00','Z')
+status,r,_=call('/biz/catalog/schools/11000','PUT',s,admin)
+check('active school with past expiry rejected',status==400 and r.get('code')==400 and '到期' in r.get('msg',''),r)
+# Keep the school enabled and let its valid future deadline pass. Manually disabling
+# it would test the status check instead of immediate expiry without a scheduled job.
+s['expire_time']=(datetime.now(timezone.utc)+timedelta(seconds=5)).isoformat().replace('+00:00','Z')
 status,r,_=call('/biz/catalog/schools/11000','PUT',s,admin);check('school expiry fixture updated',status==200,r)
-status,_,_=call('/biz/auth/me',token=student);check('already logged-in student denied after school expiry',status==403)
+status,r,_=call('/biz/auth/me',token=student);check('student remains allowed before school expiry',status==200,r)
+deadline=time.monotonic()+15
+while True:
+ status,r,_=call('/biz/auth/me',token=student)
+ if status!=200 or time.monotonic()>=deadline:break
+ time.sleep(0.2)
+check('already logged-in student denied after school expiry',status==403,r)
+status,r,_=call('/biz/catalog/schools/11000?edit=true',token=admin)
+check('school expiry enforced before scheduled deactivation',status==200 and r['data']['school_status']=='ACTIVE',r)
 print('SUMMARY',len(results),'checks passed')
