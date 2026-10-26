@@ -1,4 +1,11 @@
-import { WIDGET_PROTOCOL, isMockGameContext, isWidgetMessage, widgetOrigin, type MockGameContext, type WidgetMessage } from './protocol'
+import {
+  WIDGET_PROTOCOL,
+  isMockGameContext,
+  isWidgetMessage,
+  widgetOrigin,
+  type MockGameContext,
+  type WidgetMessage,
+} from './protocol'
 export type { MockGameContext } from './protocol'
 export interface WidgetOptions {
   container: HTMLElement
@@ -29,45 +36,84 @@ export function createAgentWidget(options: WidgetOptions) {
   const panel = shadow.querySelector<HTMLElement>('.panel')!
   const status = shadow.querySelector<HTMLElement>('.status')!
   const frame = shadow.querySelector<HTMLIFrameElement>('iframe')!
+  // Keep the browsing context in light DOM for browser accessibility/automation;
+  // the named slot retains isolated host controls and the panel's flex layout.
+  const frameSlot = document.createElement('slot')
+  frameSlot.name = 'agent-frame'
+  frame.replaceWith(frameSlot)
+  frame.slot = 'agent-frame'
+  frame.style.cssText = 'width:100%;flex:1;min-height:0;border:0;background:#fafbff'
+  root.append(frame)
   let loaded = false
   let ready = false
   let disposed = false
   function post() {
-    if (ready && !disposed) frame.contentWindow?.postMessage({ protocol: WIDGET_PROTOCOL, channelId, type: 'context', context } satisfies WidgetMessage, origin)
+    if (ready && !disposed)
+      frame.contentWindow?.postMessage(
+        { protocol: WIDGET_PROTOCOL, channelId, type: 'context', context } satisfies WidgetMessage,
+        origin,
+      )
   }
-  function close() { panel.hidden = true; launcher.hidden = false; launcher.focus() }
+  function close() {
+    panel.hidden = true
+    launcher.hidden = false
+    launcher.focus()
+  }
   function open() {
-    panel.hidden = false; launcher.hidden = true
-    if (!loaded) { loaded = true; frame.src = url.href } else post()
+    panel.hidden = false
+    launcher.hidden = true
+    if (!loaded) {
+      loaded = true
+      frame.src = url.href
+    } else post()
     shadow.querySelector<HTMLButtonElement>('.close')!.focus()
   }
   function receive(event: MessageEvent) {
-    if (event.origin !== origin || event.source !== frame.contentWindow || !isWidgetMessage(event.data, channelId)) return
+    if (
+      event.origin !== origin ||
+      event.source !== frame.contentWindow ||
+      !isWidgetMessage(event.data, channelId)
+    )
+      return
     const message = event.data
-    if (message.type === 'ready') { ready = true; post() }
+    if (message.type === 'ready') {
+      ready = true
+      post()
+    }
     if (message.type === 'accepted' && message.requestId === context.requestId) {
       status.textContent = `已接收星球数据：第${context.game.volume}册 · ${context.game.name}`
       options.onAccepted?.({ requestId: message.requestId, evaluationId: message.evaluationId })
     }
-    if (message.type === 'error') status.textContent = message.message || '学伴暂时无法连接，请关闭后重新打开。'
+    if (message.type === 'error')
+      status.textContent = message.message || '学伴暂时无法连接，请关闭后重新打开。'
     if (message.type === 'close') close()
   }
   launcher.addEventListener('click', open)
   shadow.querySelector('.close')!.addEventListener('click', close)
   if (options.onMockRound) {
     const round = document.createElement('button')
-    round.type = 'button'; round.className = 'round'; round.textContent = '发送新一局模拟成绩'
+    round.type = 'button'
+    round.className = 'round'
+    round.textContent = '发送新一局模拟成绩'
     round.addEventListener('click', options.onMockRound)
     panel.append(round)
   }
   window.addEventListener('message', receive)
   options.container.append(root)
   return {
-    open, close,
+    open,
+    close,
     updateContext(value: MockGameContext) {
       if (!isMockGameContext(value)) throw new Error('星球传入的模拟上下文无效。')
-      context = value; status.textContent = '正在传入星球上下文…'; post()
+      context = value
+      status.textContent = '正在传入星球上下文…'
+      post()
     },
-    destroy() { disposed = true; window.removeEventListener('message', receive); frame.src = 'about:blank'; root.remove() },
+    destroy() {
+      disposed = true
+      window.removeEventListener('message', receive)
+      frame.src = 'about:blank'
+      root.remove()
+    },
   }
 }

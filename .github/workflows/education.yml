@@ -1,9 +1,9 @@
 name: Education platform build and deploy
 on:
   pull_request:
-    paths: ['education-admin/**', 'gamesoptionproject/**', '.github/workflows/education.yml']
+    paths: ['education-admin/**', 'gamesoptionproject/**', 'agent-widget-sdk/**', '.github/workflows/education.yml']
   push:
-    paths: ['education-admin/**', 'gamesoptionproject/**', '.github/workflows/education.yml']
+    paths: ['education-admin/**', 'gamesoptionproject/**', 'agent-widget-sdk/**', '.github/workflows/education.yml']
   workflow_dispatch:
 concurrency:
   group: fengyucode-education-${{ github.ref }}

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { updatePlanetAgentSelection } from '../../integrations/agent-widget/context'
 import { artwork } from '../../assets'
 import { catalogBackIcon, type BookDefinition, type GameMode } from '../../config/books'
 import { loadGroup } from '../../composables/useSceneAssets'
@@ -13,7 +14,13 @@ import GameModeSwitch from './GameModeSwitch.vue'
 const props = defineProps<{ book: BookDefinition }>()
 const emit = defineEmits<{ back: [] }>()
 const selected = ref(0)
-const mode = ref<GameMode>('training')
+const mode = ref<GameMode>(import.meta.env.MODE === 'mock' ? 'assessment' : 'training')
+watch(
+  [selected, mode],
+  () =>
+    updatePlanetAgentSelection({ volume: props.book.id, slot: selected.value, mode: mode.value }),
+  { immediate: true },
+)
 const layout = ref<'orbit' | 'grid'>('orbit')
 const ready = ref(false)
 const error = ref(false)

@@ -2,6 +2,7 @@
 import { onBeforeUnmount, ref } from 'vue'
 import PlanetExplorer from './home/index.vue'
 import { planetViews } from './planets/index'
+import { updatePlanetAgentSelection } from '../integrations/agent-widget/context'
 
 function readBook() {
   const match = /^#book\/(\d+)$/.exec(window.location.hash)
@@ -14,6 +15,7 @@ function syncLocation() {
   currentBook.value = readBook()
 }
 function enter(bookId: number) {
+  updatePlanetAgentSelection({ volume: bookId, slot: 0, mode: 'assessment' })
   window.history.pushState({ bookCatalog: true }, '', `#book/${bookId}`)
   currentBook.value = bookId
 }

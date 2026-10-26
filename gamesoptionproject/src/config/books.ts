@@ -1,4 +1,5 @@
 import { planets } from '../assets'
+import { mockGames } from '../integrations/agent-widget/mock'
 
 export type GameMode = 'training' | 'assessment'
 export interface BookGame {
@@ -56,7 +57,11 @@ export const books: BookDefinition[] = planets.map((planet, index) => {
     games: Array.from({ length: 8 }, (_, gameIndex) => ({
       id: `${prefix}-game-${String(gameIndex + 1).padStart(2, '0')}`,
       title:
-        supplied && gameIndex === 0 ? '抢石子' : `游戏 ${String(gameIndex + 1).padStart(2, '0')}`,
+        import.meta.env.MODE === 'mock'
+          ? `${mockGames[gameIndex]!.name}（模拟）`
+          : supplied && gameIndex === 0
+            ? '抢石子'
+            : `游戏 ${String(gameIndex + 1).padStart(2, '0')}`,
       thumbnail,
       entries: {},
     })),

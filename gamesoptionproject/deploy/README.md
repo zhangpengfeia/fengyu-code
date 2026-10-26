@@ -4,7 +4,7 @@
 服务器：`152.136.228.231`，SSH 用户 `root`  
 访问地址：`https://fengyucode.zhangff.cn`
 
-应用源码、依赖和部署文件位于仓库的 `gamesoptionproject/` 子目录，本文中的本地相对路径均以该目录为基准。工作流仍位于仓库根目录 `.github/workflows/deploy.yml`，其默认 shell 工作目录、npm 缓存和 Docker 构建上下文已指向子项目。只有子项目或该工作流变更才自动触发；手动运行仍可用。
+应用源码、依赖和部署文件位于仓库的 `gamesoptionproject/` 子目录，本文中的本地相对路径均以该目录为基准。工作流仍位于仓库根目录 `.github/workflows/deploy.yml`，其默认 shell 工作目录、npm 缓存指向子项目。因星球引用独立的 `agent-widget-sdk/`，Docker 构建使用仓库根目录作为上下文（`docker build -f gamesoptionproject/deploy/web.Dockerfile .`）。子项目、学伴 SDK 或该工作流变更都会自动触发；手动运行仍可用。
 
 本次目录迁移不改变线上域名、服务器目录、镜像名称、Compose 服务、已有 Secrets 或 `production` Environment。后续新增同级项目应独立配置工作流、域名、镜像、服务器目录、容器项目名和端口。
 

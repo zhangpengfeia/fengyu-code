@@ -1,6 +1,7 @@
 # Repository root is the build context, so the existing planet source is available.
 FROM node:22-bookworm-slim AS games
 WORKDIR /src/gamesoptionproject
+COPY agent-widget-sdk/ /src/agent-widget-sdk/
 COPY gamesoptionproject/package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY gamesoptionproject/ ./

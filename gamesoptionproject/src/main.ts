@@ -6,7 +6,10 @@ async function start() {
   root.textContent = '正在验证教学资源权限…'
   try {
     // A development-only escape hatch never appears in production builds.
-    if (import.meta.env.DEV && import.meta.env.VITE_STANDALONE_DEV === 'true') {
+    if (
+      import.meta.env.DEV &&
+      (import.meta.env.VITE_STANDALONE_DEV === 'true' || import.meta.env.MODE === 'mock')
+    ) {
       createApp(App).mount(root)
       return
     }

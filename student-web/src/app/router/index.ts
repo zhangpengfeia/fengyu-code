@@ -7,6 +7,12 @@ export const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     {
+      path: "/widget",
+      name: "agent-widget-frame",
+      component: () => import("@/widget/frame/WidgetFrame.vue"),
+      meta: { title: "星球智能学伴", public: true },
+    },
+    {
       path: "/login",
       name: "login",
       component: () => import("@/pages/login/index.vue"),
@@ -71,12 +77,16 @@ export const router = createRouter({
           component: () => import("@/pages/companion/index.vue"),
           meta: { title: "智能学伴" },
         },
-        ...(isMock ? [{
-          path: "mock-game/:gameCode",
-          name: "mock-game",
-          component: () => import("@/pages/mock-game/index.vue"),
-          meta: { title: "游戏结束联调" },
-        }] : []),
+        ...(isMock
+          ? [
+              {
+                path: "mock-game/:gameCode",
+                name: "mock-game",
+                component: () => import("@/pages/mock-game/index.vue"),
+                meta: { title: "游戏结束联调" },
+              },
+            ]
+          : []),
       ],
     },
     {

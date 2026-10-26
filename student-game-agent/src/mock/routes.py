@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Header, Request
 from pydantic import Field
 
 from src.app.dependencies import Services, Student
-from src.schemas.api import StrictModel, TokenRequest
+from src.schemas.api import AttemptData, StrictModel, TokenRequest
 from src.security.auth import issue_token
 from src.utils.errors import AppError
 
@@ -53,6 +53,60 @@ class MockLogin(StrictModel):
 class MockFinish(StrictModel):
     request_id: UUID
     game_code: str = Field(pattern=r"^[a-z][a-z0-9-]{0,63}$")
+
+
+class MockWidgetInput(StrictModel):
+    request_id: UUID
+    facts: AttemptData
+
+
+@router.post("/dev/mock/widget-session")
+async def widget_session(body: MockWidgetInput, services: Services):
+    """Explicit development-only bootstrap; this route is absent in live mode."""
+    user = services.mock.principal.model_copy(
+        update={"app_id": services.settings.integration_app_id}
+    )
+    facts = body.facts
+    if (facts.student_id, facts.school_id) != (user.student_id, user.school_id):
+        raise AppError("FORBIDDEN", "只能传入当前模拟学生的数据", 403)
+    attempt_id = "planet-widget-" + str(body.request_id)
+    game = services.catalog.get(facts.game_code)
+    if (
+        facts.source_attempt_id != attempt_id
+        or facts.source_revision != 1
+        or facts.game_rule_version != game.prompt_version
+    ):
+        raise AppError("INVALID_ATTEMPT_DATA", "模拟局次或规则版本不匹配", 422)
+    supplied = facts.model_dump(mode="json")
+    job_id = None
+    accepted_facts = supplied
+    if facts.mode == "ASSESSMENT":
+        job_id = await services.mock.create_attempt(
+            services, user, facts.game_code, attempt_id, case=supplied
+        )
+        job = await services.evaluation_repository.student_job(user, job_id)
+        # Reopening a round is idempotent; changed metrics require a new round ID.
+        compared = set(AttemptData.model_fields) - {"ended_at"}
+        if any(job.facts.get(key) != supplied[key] for key in compared):
+            raise AppError(
+                "IDEMPOTENCY_CONFLICT", "同一模拟局次不能更换成绩，请发送新一局数据", 409
+            )
+        accepted_facts = job.facts
+    token = issue_token(
+        services.settings, TokenRequest(student_id=user.student_id, school_id=user.school_id)
+    )
+    return {
+        "access_token": token,
+        "expires_in": services.settings.token_ttl_seconds,
+        "evaluation_id": job_id,
+        "mock": True,
+        "student": {
+            "id": user.student_id,
+            "name": services.mock.data["student"]["name"],
+            "school_id": user.school_id,
+        },
+        "facts": accepted_facts,
+    }
 
 
 @router.get("/dev/education/captchaImage")

@@ -14,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT.parent / "student-web"
+PLANET = ROOT.parent / "gamesoptionproject"
 
 
 def ensure_free(port):
@@ -61,12 +62,20 @@ def main():
     parser.add_argument("--api-port", type=int, default=8088)
     parser.add_argument("--web-port", type=int, default=5175)
     parser.add_argument("--api-only", action="store_true")
+    parser.add_argument("--with-planet", action="store_true")
+    parser.add_argument("--planet-port", type=int, default=5177)
     args = parser.parse_args()
+    if args.api_only and args.with_planet:
+        parser.error("--api-only 与 --with-planet 不能同时使用")
     ensure_free(args.api_port)
     if not args.api_only:
         ensure_free(args.web_port)
         if not (WEB / "node_modules").is_dir():
             raise SystemExit("请先在 student-web 执行 npm ci。")
+    if args.with_planet:
+        ensure_free(args.planet_port)
+        if not (PLANET / "node_modules").is_dir():
+            raise SystemExit("请先在 gamesoptionproject 执行 npm ci。")
     env = mock_environment()
     subprocess.run(
         [sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=env, check=True
@@ -111,9 +120,25 @@ def main():
                 subprocess.Popen(
                     ["npm", "run", "dev:mock", "--", "--port", str(args.web_port)],
                     cwd=WEB,
-                    env={**env, "MOCK_AGENT_API_TARGET": f"http://127.0.0.1:{args.api_port}"},
+                    env={
+                        **env,
+                        "MOCK_AGENT_API_TARGET": f"http://127.0.0.1:{args.api_port}",
+                        "VITE_WIDGET_PARENT_ORIGINS": f"http://127.0.0.1:{args.planet_port},http://localhost:{args.planet_port}",
+                    },
                 )
             )
+        if args.with_planet:
+            children.append(
+                subprocess.Popen(
+                    ["npm", "run", "dev:mock", "--", "--port", str(args.planet_port)],
+                    cwd=PLANET,
+                    env={
+                        **env,
+                        "VITE_AGENT_WIDGET_URL": f"http://127.0.0.1:{args.web_port}/widget",
+                    },
+                )
+            )
+            print(f"星球模拟联调: http://127.0.0.1:{args.planet_port}/", flush=True)
         print(f"\nMock API: http://127.0.0.1:{args.api_port}/docs", flush=True)
         if not args.api_only:
             print(f"学生端: http://127.0.0.1:{args.web_port}/login", flush=True)

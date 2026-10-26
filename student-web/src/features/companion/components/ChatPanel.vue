@@ -75,7 +75,8 @@ function onKeydown(event: KeyboardEvent) {
 onMounted(async () => {
   await loadGames();
   const requested =
-    props.initialGame || (typeof route.query.game === "string" ? route.query.game : "");
+    props.initialGame ||
+    (typeof route.query.game === "string" ? route.query.game : "");
   const reportId =
     props.evaluation ||
     (typeof route.query.evaluation === "string" ? route.query.evaluation : "");
@@ -119,7 +120,9 @@ onMounted(async () => {
       </div>
       <div v-if="evaluationId" class="preview-note" role="status">
         正在讨论所选本局报告。
-        <button type="button" @click="changeContext(gameCode)">切换为自由问答</button>
+        <button type="button" @click="changeContext(gameCode)">
+          切换为自由问答
+        </button>
       </div>
       <div v-if="gameError" class="chat-alert" role="alert">
         {{ gameError
@@ -171,7 +174,13 @@ onMounted(async () => {
                 <span
                   v-for="citation in message.citations"
                   :key="citation.source_id"
-                  ><AppIcon name="book" :size="12" />{{ citation.title }}</span
+                  ><AppIcon name="book" :size="12" />{{
+                    citation.kind === "prompt"
+                      ? citation.source_id.startsWith("game.rules.")
+                        ? "游戏规则"
+                        : "学伴对话规则"
+                      : citation.title
+                  }}</span
                 >
               </div>
             </div>
@@ -197,9 +206,7 @@ onMounted(async () => {
         </button>
       </div>
       <form class="chat-composer" @submit.prevent="submit">
-        <label class="sr-only" :for="inputId"
-          >输入想问学伴的问题</label
-        >
+        <label class="sr-only" :for="inputId">输入想问学伴的问题</label>
         <textarea
           :id="inputId"
           ref="input"
@@ -222,6 +229,7 @@ onMounted(async () => {
           v-else
           class="btn btn-primary composer-action"
           type="submit"
+          aria-label="发送"
           :disabled="!question.trim() || loadingHistory || loadingGames"
         >
           <AppIcon name="send" :size="17" /><span>发送</span>
