@@ -56,6 +56,8 @@ GitHub Actions 保留在仓库根目录。星球源码工作流仅进行检查�
 
 ## 添加其他项目
 
+学生游戏 Agent 后端位于 [student-game-agent](student-game-agent/README.md)，独立管理 Python 依赖、Nacos 游戏规则、问答流程和每局评价 Worker，并预留独立网页及悬浮窗 SDK 目录。
+
 在仓库根目录新增同级项目文件夹，各自维护依赖、锁文件、构建产物和部署文件。为新项目在 `.github/workflows/` 创建独立工作流，设置对应目录的路径过滤、工作目录、缓存锁文件和 Docker 上下文。
 
 其他独立项目应使用各自部署身份。按当前同域名要求，教育平台有意接管 `/project/fengyucode` 和 `fengyucode-web`，后台在根路径，星球移至 `/play/planet/`；使用版本核对与自动回滚，其他项目不受影响。

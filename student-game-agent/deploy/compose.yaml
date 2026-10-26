@@ -1,0 +1,53 @@
+name: student-game-agent
+
+x-agent: &agent
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+  env_file: ../backend/.env
+  environment:
+    AGENT_DATABASE_URL: postgresql+psycopg://agent:${POSTGRES_PASSWORD:?请设置独立数据库密码}@postgres:5432/student_game_agent
+  restart: unless-stopped
+
+services:
+  postgres:
+    image: postgres:17.7
+    environment:
+      POSTGRES_DB: student_game_agent
+      POSTGRES_USER: agent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请设置独立数据库密码}
+    volumes:
+      - agent_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agent -d student_game_agent"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+  migrate:
+    <<: *agent
+    command: ["/app/.venv/bin/alembic", "upgrade", "head"]
+    restart: "no"
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  api:
+    <<: *agent
+    ports: ["127.0.0.1:8088:8088"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "/app/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8088/health/ready', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    <<: *agent
+    command: ["/app/.venv/bin/python", "-m", "student_game_agent.workers.evaluation_worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+volumes:
+  agent_postgres:

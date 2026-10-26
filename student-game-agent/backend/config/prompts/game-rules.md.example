@@ -1,0 +1,14 @@
+# 必须填入真实玩法后，作为指定游戏的 Nacos Prompt 发布
+
+游戏名称：{{game_name}}
+规则版本：{{game_rule_version}}
+适用册号：{{volume}}
+新手、能手、大师的区别：{{difficulty_description}}
+游戏目标：{{goal}}
+合法操作：{{legal_operations}}
+禁止操作：{{illegal_operations}}
+结束与胜负条件：{{finish_conditions}}
+已确认的评分规则说明：{{scoring_explanation}}
+
+此文件是维护格式示例，不能直接发布使用。
+第一阶段后端接收完整规则文本，检测到未填写的双花括号变量会拒绝生成回答。

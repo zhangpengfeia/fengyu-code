@@ -1,0 +1,11 @@
+# 名称来自用户此前提供的 Word；在线第五册规则尚待逐项核对。
+# 这里仅登记 Nacos 绑定，不包含猜测的玩法。缺少对应 Prompt 会明确返回 503。
+games:
+  - {code: eight-pieces, name: 八子归位, prompt_key: game.rules.eight-pieces, prompt_version: 1.0.0}
+  - {code: arrow-maze, name: 箭头迷宫, prompt_key: game.rules.arrow-maze, prompt_version: 1.0.0}
+  - {code: number-maze, name: 数字迷宫, prompt_key: game.rules.number-maze, prompt_version: 1.0.0}
+  - {code: balloon, name: 打气球, prompt_key: game.rules.balloon, prompt_version: 1.0.0}
+  - {code: stone-transfer, name: 石头搬运, prompt_key: game.rules.stone-transfer, prompt_version: 1.0.0}
+  - {code: addition, name: 加法游戏, prompt_key: game.rules.addition, prompt_version: 1.0.0}
+  - {code: fish, name: 鱼的游戏, prompt_key: game.rules.fish, prompt_version: 1.0.0}
+  - {code: four-seas, name: 纵横四海, prompt_key: game.rules.four-seas, prompt_version: 1.0.0}
