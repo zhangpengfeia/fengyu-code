@@ -265,3 +265,9 @@ make check
 自动化测试使用临时 SQLite、真实 Alembic 迁移、FastAPI ASGI、真实 LangGraph 和模型协议客户端；外部 Nacos/模型/测评接口使用 HTTP 协议替身，不需要也不会使用生产凭据。覆盖普通聊天与按需规则、报告追问、版本快照、越权拒绝、幂等、租约、SSE、训练跳过、数据延迟、来源修订和模型降级等行为。
 
 开发使用 SQLite；Compose 使用 PostgreSQL。真实模型质量、Nacos 部署连通性、外部游戏接口、PostgreSQL 多进程并发、容器构建和真实教育平台前端接入需要在对应环境继续验收，不能用当前协议测试替代。
+
+## 星球独立悬浮窗与发布
+
+`uv run --locked python scripts/dev_mock.py --with-planet` 同时启动 Agent、学生应用与星球。开发专用 `/dev/mock/widget-session` 接收星球模拟事实，返回短期令牌和测评 ID；生产环境不注册此路由。详见 `../agent-widget-sdk/README.md`。
+
+正式发布路径 `/education/agent/`、GitHub Actions 配置、服务器凭据和回退步骤见 `deploy/README.md`。

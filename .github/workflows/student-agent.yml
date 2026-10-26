@@ -1,0 +1,172 @@
+name: Student web and Agent build and deploy
+on:
+  push:
+    branches: [main]
+    paths: ['student-web/**', 'student-game-agent/**', 'agent-widget-sdk/**', '.github/workflows/student-agent.yml']
+  pull_request:
+    paths: ['student-web/**', 'student-game-agent/**', 'agent-widget-sdk/**', '.github/workflows/student-agent.yml']
+  workflow_dispatch:
+concurrency:
+  group: fengyucode-student-agent-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13.11'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            student-web/package-lock.json
+            agent-widget-sdk/package-lock.json
+            gamesoptionproject/package-lock.json
+      - name: Backend tests with isolated test data
+        working-directory: student-game-agent
+        run: |
+          python -m pip install uv==0.11.18
+          uv sync --locked
+          uv run --locked pytest -q
+          bash -n deploy/pipeline-deploy.sh
+          uv run --locked python -m unittest discover -s deploy/tests -v
+      - name: Build independent widget SDK
+        working-directory: agent-widget-sdk
+        run: |
+          npm ci
+          npm run build
+      - name: Student typecheck, protocol tests, and production build
+        working-directory: student-web
+        env:
+          VITE_BASE_PATH: /education/agent/
+          VITE_EDUCATION_API_BASE: /prod-api
+          VITE_AGENT_API_BASE: /education/agent/api
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Planet integration build
+        working-directory: gamesoptionproject
+        run: |
+          npm ci
+          npm run build
+      - name: Validate production Compose without exposing credentials
+        shell: bash
+        run: |
+          umask 077
+          printf 'POSTGRES_PASSWORD=%064d\nAGENT_SERVICE_API_KEY=%064d\nAGENT_JWT_SECRET=%064d\n' 1 2 3 > /tmp/agent-ci.env
+          IMAGE_PREFIX=ghcr.io/validation/app IMAGE_TAG=validation AGENT_CREDENTIALS_FILE=/tmp/agent-ci.env \
+            docker compose --env-file /tmp/agent-ci.env -f student-game-agent/deploy/compose.release.yaml --profile tools config --quiet
+
+  publish:
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      prefix: ${{ steps.release.outputs.prefix }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Immutable image identity
+        id: release
+        shell: bash
+        run: |
+          repository=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "prefix=ghcr.io/$repository" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish Agent API/worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: student-game-agent
+          file: student-game-agent/deploy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.release.outputs.prefix }}/student-game-agent:${{ steps.release.outputs.tag }}
+          cache-from: type=gha,scope=student-agent-api
+          cache-to: type=gha,mode=max,scope=student-agent-api
+      - name: Build and publish student website image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: student-web/deploy/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.release.outputs.prefix }}/student-web:${{ steps.release.outputs.tag }}
+          build-args: |
+            RELEASE_ID=${{ steps.release.outputs.tag }}
+            VITE_AGENT_TOKEN_ENDPOINT=${{ vars.AGENT_TOKEN_ENDPOINT }}
+          cache-from: type=gha,scope=student-agent-web
+          cache-to: type=gha,mode=max,scope=student-agent-web
+
+  deploy:
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: https://fengyucode.zhangff.cn/education/agent/
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Upload versioned release and deploy independent stack
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          BASE_DIR: ${{ vars.AGENT_DEPLOY_BASE_DIR || '/project/fengyucode-student-agent' }}
+          NETWORK: ${{ vars.DEPLOY_NETWORK || 'crm-ai_default' }}
+          HTTP_PORT: ${{ vars.AGENT_HTTP_PORT || '18089' }}
+          IMAGE_PREFIX: ${{ needs.publish.outputs.prefix }}
+          IMAGE_TAG: ${{ needs.publish.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            [[ -n "${!name}" ]] || { echo "::error::Missing $name"; exit 1; }
+          done
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ && "$DEPLOY_USER" =~ ^[a-zA-Z_][a-zA-Z0-9_-]*$ ]] || exit 2
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ && "$HTTP_PORT" =~ ^[0-9]+$ ]] || exit 2
+          [[ "$BASE_DIR" =~ ^/[a-zA-Z0-9_/-]+$ && "$BASE_DIR" != *..* && "$BASE_DIR" != / ]] || exit 2
+          [[ "$NETWORK" =~ ^[a-zA-Z0-9][a-zA-Z0-9_.-]*$ ]] || exit 2
+          [[ "$IMAGE_PREFIX" =~ ^ghcr\.io/[a-z0-9._/-]+$ && "$IMAGE_TAG" =~ ^sha-[a-f0-9]{40}-[0-9]+-[0-9]+$ ]] || exit 2
+          ssh_dir=$(mktemp -d "$RUNNER_TEMP/student-agent-ssh.XXXXXX")
+          trap 'rm -rf -- "$ssh_dir"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" | tr -d '\r' > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          ssh-keygen -lf "$ssh_dir/known_hosts" >/dev/null
+          lookup="$DEPLOY_HOST"; if [[ "$DEPLOY_PORT" != 22 ]]; then lookup="[$DEPLOY_HOST]:$DEPLOY_PORT"; fi
+          ssh-keygen -F "$lookup" -f "$ssh_dir/known_hosts" >/dev/null
+          opts=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o ConnectTimeout=15)
+          remote="$DEPLOY_USER@$DEPLOY_HOST"
+          release="$BASE_DIR/releases/$IMAGE_TAG/deploy"
+          incoming="$BASE_DIR/.pipeline/incoming/$IMAGE_TAG.tar.gz"
+          package=$(mktemp -d "$RUNNER_TEMP/student-agent-release.XXXXXX")
+          cp student-game-agent/deploy/compose.release.yaml "$package/compose.yaml"
+          cp student-game-agent/deploy/pipeline-deploy.sh "$package/"
+          tar -czf "$RUNNER_TEMP/student-agent-release.tar.gz" -C "$package" compose.yaml pipeline-deploy.sh
+          ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "umask 077; mkdir -p '$BASE_DIR/.pipeline/incoming' '$release'"
+          scp "${opts[@]}" -P "$DEPLOY_PORT" "$RUNNER_TEMP/student-agent-release.tar.gz" "$remote:$incoming"
+          ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "tar -xzf '$incoming' -C '$release' && rm -f '$incoming' && bash '$release/pipeline-deploy.sh' deploy '$BASE_DIR' '$IMAGE_PREFIX' '$IMAGE_TAG' '$NETWORK' '$HTTP_PORT'"
+          printf '### Student/Agent deployed\n\nhttps://fengyucode.zhangff.cn/education/agent/\n\nRelease: `%s`\n' "$IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"

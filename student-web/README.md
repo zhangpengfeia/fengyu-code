@@ -126,7 +126,7 @@ Agent 不接受教育平台令牌，也没有学生账号密码登录接口。�
 - 能力百分比、册次趋势、学习天数与荣誉汇总暂无统一数据接口。真实模式显示单局事实和可获得的统计，雷达图与荣誉墙仅在明确的设计预览中展示示例。
 - 校园榜当前后端拒绝学生访问，页面明确禁用校园榜；班级榜遵守现有角色权限。
 - 学伴昵称、头像、语音偏好保存在当前浏览器，不跨设备同步。没有头像上传、语音合成或语音识别后端，不显示虚假的试听/上传成功。
-- 站内悬浮窗位于 `src/widget/AgentWidget.vue`，与独立学伴页面复用 `features/companion/components/ChatPanel.vue`；面向第三方宿主的独立 `widget.js` SDK 与嵌入鉴权尚未实现。
+- 站内悬浮窗位于 `src/widget/AgentWidget.vue`，与独立学伴页面复用 `features/companion/components/ChatPanel.vue`；面向星球的独立挂件位于 `../agent-widget-sdk`，模拟接入页面位于 `src/widget/frame/`。正式宿主鉴权仍需教育后端换票。
 - 星球页面已复用仓库素材；真实游戏逻辑仍由现有 `/play/` 项目提供。
 
 ## 移动与桌面适配
@@ -138,3 +138,7 @@ Agent 不接受教育平台令牌，也没有学生账号密码登录接口。�
 生产默认使用真实模式。与现有后台共域时，可设置 `VITE_BASE_PATH=/student/` 构建，把 `dist/` 内容放到服务器 `/usr/share/nginx/html/student/`。`VITE_EDUCATION_API_BASE=/prod-api` 可复用原教育平台 API 代理；Agent 另配 `/agent-api` 代理。
 
 参见 `deploy/nginx.student.conf`（需要并入现有 server 块，不能直接覆盖现有管理端配置）。需保留 `/play/` 的逐请求鉴权代理。History 路由需回退到 `/student/index.html`；Agent SSE 代理需关闭缓冲并配置适当超时。
+
+## 星球嵌入与发布流水线
+
+星球模拟接入和启动步骤见 `../agent-widget-sdk/README.md`。独立 iframe 路由为 `/widget`，不加载站点导航。发布入口已配置为 `/education/agent/`，构建与网关见 `deploy/Dockerfile`、`deploy/nginx.agent.conf`；服务器准备、身份桥接和发布/回退见 `../student-game-agent/deploy/README.md`。
