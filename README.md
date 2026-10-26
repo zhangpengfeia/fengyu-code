@@ -64,4 +64,6 @@ GitHub Actions 保留在仓库根目录。星球源码工作流仅进行检查�
 
 ## 智慧教育后台
 
+学生响应式网页位于 [student-web](student-web/README.md)，使用 Vue 3 + TypeScript + Vite，按 `pages/`、`features/`、`shared/` 拆分页面、业务与基础组件。支持手机底部导航和电脑侧栏，包含课程、报告、排行榜、智能学伴与账号设置。在该目录运行 `npm ci` 后，使用 `npm run dev:preview` 查看明确标记的设计预览，或 `npm run dev` 连接现有后端。
+
 新增独立项目 [education-admin](education-admin/README.md)，按优化需求说明书 V1.1 实现第一期：若依 Vue3、Spring Boot 3、MySQL SQL、课件游戏目录、学校账号与 RBAC 及游戏入口鉴权。前后端、SQL、游戏和部署目录分别独立维护。原星球项目已增加教育平台访问保护，迁移方式见 [教育平台部署说明](education-admin/docs/DEPLOYMENT.md)。

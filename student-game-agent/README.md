@@ -2,7 +2,7 @@
 
 独立的学生游戏后端工程，参考 `ai-infrastructure-main/src/deal_pilot` 的功能分层重新整理，未复制教学课件、Notebook、沙箱、部署工具、网页搜索或实验 Webhook。现有教育平台和参考工程保持不变。
 
-当前主链路为 **学生提问 → 读取 Nacos 游戏规则 → 预留检索节点 → 调用大模型 → 保存并返回回答**。同时提供每局测评结束事件、权威数据适配器和独立评价 Worker。`frontend/` 和 `widget-sdk/` 为后续独立网页与悬浮窗预留，目前没有前端实现。
+应用有两个入口：**学生自由提问 → 确认上下文 → 按需加载模板、游戏规则或已有报告 → 回答**；**游戏结束事件 → 获取权威本局数据 → 加载本局规则与评价模板 → 生成并保存报告**。两条链路共用 Prompt 解析服务，评价由独立 Worker 执行。`frontend/` 和 `widget-sdk/` 为后续独立网页与悬浮窗预留，目前没有前端实现。
 
 ## 工程目录
 
@@ -20,9 +20,10 @@ student-game-agent/
 │   │   │   └── nacos/prompts.py         认证、精确版本查询与缓存
 │   │   ├── agents/                      Agent 状态与模型流程
 │   │   │   ├── state.py
-│   │   │   ├── question_agent.py        LangGraph 规则问答
+│   │   │   ├── question_agent.py        LangGraph 按需问答
 │   │   │   └── evaluation_agent.py      结构化本局评价
-│   │   ├── services/                    问答幂等、评价任务与重试
+│   │   ├── services/                    上下文解析、问答幂等、评价任务与重试
+│   │   │   └── prompt_resolver.py       按场景解析公共、任务和规则模板
 │   │   ├── backends/                    数据库、ORM、聊天与评价 Repository
 │   │   ├── integrations/               权威测评数据来源契约与 HTTP 适配器
 │   │   ├── rag/                         文本/图片检索契约，当前关闭
@@ -68,6 +69,8 @@ make migrate
 make dev
 ```
 
+已有数据库也要执行 `make migrate`，升级至 `0002`，以支持无游戏的普通会话及报告上下文；不要清库重建。数据库迁移不代替 Nacos 配置升级，开始业务联调前还需发布下文的新模板。
+
 API 地址为 `http://127.0.0.1:8088`，交互文档为 `http://127.0.0.1:8088/docs`。另开终端，在同一 `backend/` 目录启动评价 Worker：
 
 ```sh
@@ -84,13 +87,20 @@ make worker
 
 | Prompt key | 内容来源 |
 | --- | --- |
-| `companion.system` | `backend/config/prompts/companion.system.md` |
+| `companion.base` | `backend/config/prompts/companion.base.md`，通用表达与事实约束 |
+| `companion.chat` | `backend/config/prompts/companion.chat.md`，自由问答与报告追问任务 |
 | `companion.evaluation` | `backend/config/prompts/companion.evaluation.md` |
 | `game.rules.eight-pieces` 等 | 经确认的真实玩法完整文本；绑定见 `backend/config/games.yaml` |
 
 `game-rules.md.example` 只是规则维护格式，不是可用的游戏规则。第一阶段使用完整 Prompt，不提供运行时任意变量执行；未填写的 `{{...}}`、空模板、错误版本和不存在的规则都会拒绝使用。缓存仅命中相同 key/version，不在请求失败后切换到其他版本。
 
-问答默认使用游戏目录绑定的精确版本，升级时在 Nacos 发布新版本并更新绑定。评价使用本局来源数据中的 `game_rule_version`，确保旧局按旧规则解释。每次成功回答和评价保存实际 Prompt 版本、SHA-256 摘要及内容快照。
+`services/prompt_resolver.py` 将模板分成通用约束、场景任务和可选游戏规则三层。普通聊天只加载 `companion.base` 与 `companion.chat`；游戏问答再加载对应规则；报告追问按已授权报告的本局规则版本加载；自动评价使用通用约束、评价任务和本局规则，不携带聊天历史。
+
+新配置使用 `AGENT_BASE_PROMPT_KEY/VERSION`、`AGENT_CHAT_PROMPT_KEY/VERSION` 与 `AGENT_EVALUATION_PROMPT_KEY/VERSION`。升级时先在 Nacos 发布 `companion.base` 和 `companion.chat` 的对应精确版本，再更新环境配置；旧 `AGENT_SYSTEM_PROMPT_*` 已被替换，不会自动回退到旧模板。现有 Nacos 中的旧资源可先保留，本工程不自动删除或发布资源。
+
+已有模板版本保持不变。若要采用更新后的评价模板内容，应发布一个新版本并更新 `AGENT_EVALUATION_PROMPT_VERSION`，不要覆盖已发布的同版本内容；已经开始的任务仍复用原快照。
+
+游戏问答默认使用游戏目录绑定的精确版本；已有报告追问和自动评价绑定事实中的 `game_rule_version`。每次成功回答和评价保存实际 Prompt 版本、SHA-256 摘要及内容快照，评价重试沿用已保存的快照。设置 `AGENT_PROMPT_PREWARM=true` 可在启动时预热公共模板；不会遍历全部游戏，预热失败记录日志，后续请求仍按需获取。
 
 游戏资料链接：[二阶测评游戏开发第五册](https://www.kdocs.cn/l/csTOyvdB2EOJ)。本次已确认在线文档标题，但未能稳定读取表格单元格，**没有将未核实的在线玩法写入 Prompt**。目录中八个名称来自此前用户提供的 Word，仍需按在线表核对；游戏 code 可以调整，已产生记录后应保持稳定。
 
@@ -112,7 +122,16 @@ make worker
 
 返回 `access_token`，前端后续使用 `Authorization: Bearer <access_token>`。不要把集成密钥或 JWT 签名密钥交给前端。令牌默认有效 15 分钟；当前尚未接宿主撤销通知，停用身份的生效上界为剩余令牌有效期，正式统一登录需要接入宿主的撤销或实时校验能力。
 
-调用 `POST /api/v1/chat`：
+普通聊天调用 `POST /api/v1/chat`，可以省略 `game_code`：
+
+```json
+{
+  "request_id":"5b140774-1a32-4d43-ab95-228c8ec9fa4a",
+  "question":"你好，我今天想聊聊学习。"
+}
+```
+
+游戏问答可由页面提供 `game_code`，也可在问题中明确游戏名称：
 
 ```json
 {
@@ -122,7 +141,23 @@ make worker
 }
 ```
 
-响应包含回答、会话 ID、Prompt 引用和模型标识。追问时传回 `conversation_id` 并生成新的 `request_id`。同一问题重试复用原 `request_id`，会返回已保存结果；同 ID 改写问题返回 409。同一会话不允许并发生成或切换游戏。学生与学校范围由 JWT 注入，不接受请求体覆盖。
+上下文不足的问题（如首次只问“这个游戏怎么玩”）会先请求确认，不调用模型猜测；即使页面携带游戏标识，只说“你好”等普通聊天也不加载游戏规则。同一会话可通过明确名称切换讨论的游戏。
+
+当前路由使用游戏名称/别名、页面或会话上下文及少量关键词，不增加模型分类调用。复杂表述建议由页面明确提供游戏或报告标识；同时提到多个游戏时会先请求选择。聊天历史按场景、游戏规则版本或本局报告过滤，避免把其他游戏或另一局的分析混入回答。
+
+追问指定报告时传入本人报告任务的 UUID，例如：
+
+```json
+{
+  "request_id":"5b140774-1a32-4d43-ab95-228c8ec9fa4b",
+  "evaluation_id":"734de4c5-3376-498f-a606-c0e376775851",
+  "question":"我这局为什么只拿到铜徽章？"
+}
+```
+
+“我刚才为什么只有铜徽章”等问题也可按当前已确认上下文查询已有报告。后端校验学生和学校归属，再读取事实、报告和对应规则；没有报告或报告未就绪时直接说明，不伪造数据、不重新创建评价任务。
+
+响应包含回答、会话 ID、Prompt/报告引用、`scene` 和 `needs_clarification`。场景为 `GENERAL_CHAT`、`GAME_QA` 或 `REPORT_QA`；`game_code`、`game_rule_version`、`evaluation_id` 和 `model` 在不适用时为 `null`。追问时传回 `conversation_id` 并生成新的 `request_id`。同一问题重试复用原 `request_id`，会返回已保存结果；同 ID 改写问题返回 409。同一会话不允许并发生成。学生与学校范围由 JWT 注入，不接受请求体覆盖。
 
 `POST /api/v1/chat/stream` 提供 `status → answer → done` 的 SSE 事件；当前返回完整最终答案，**尚未实现逐 Token 推送**。事件流已开始后的业务错误通过 `error` 事件传递。前端使用带认证头的 `fetch`；断线后用原请求 ID 重试。悬浮窗 SDK、一次性嵌入票据、原生 App 桥接和界面自适应仍留待前端阶段实现。
 
@@ -169,13 +204,15 @@ Authorization: Bearer {AGENT_ATTEMPT_API_KEY}
 
 Worker 按数据版本去重、保存事实和规则快照，再生成评价；未就绪接口返回 202/404 时进入 `WAITING_DATA`，之后有限退避重试。模型失败时，仅在已有可信事实和有效规则后允许固定模板降级；数据或规则不完整时标记失败，不伪造报告。训练局仅保留跳过任务索引，不存学生归属、局内指标或评价。
 
+升级前已开始的评价任务继续复用旧事实和提示词快照；旧版两项快照会显式归档当时的代码策略为 `legacy.code-boundary`，不拉取新 base 模板改变旧任务。报告追问优先使用报告保存的规则快照。两种场景均不会因 Nacos 发布新版本而改写已保存的报告。
+
 同一局修订必须增加 `source_revision`，会生成独立历史记录，旧报告不覆盖；当前查询接口返回版本历史，未实现册次聚合、最新版本投影和排行榜。Worker 执行租约和数据库条件更新防止旧执行覆盖新执行；模型返回到落库之间崩溃可能重复调用模型，不承诺上游绝对只计费一次。
 
 ## RAG 扩展位置
 
 `rag/schemas.py` 预留：文本查询、图片对象键、学生/学校范围、游戏、规则版本、top-k，以及文本/图片检索结果与来源引用。`rag/retriever.py` 定义 `Retriever`，默认 `DisabledRetriever` 返回空结果。
 
-后续新增检索实现，在 `app/container.py` 装配，并按身份与游戏版本过滤。问答图已经留有 `retrieval` 节点，文本片段可进入上下文、图片结果可返回引用。**向量库、文档入库、OCR、图片上传、图片向量检索和视觉模型调用尚未实现**；目前未直接读取图片内容，只能使用将来检索器提供的文字说明。`AGENT_RAG_ENABLED=true` 会明确拒绝启动，接入真实 Retriever 后再调整启用逻辑。
+后续新增检索实现，在 `app/container.py` 装配，并按身份与游戏版本过滤。仅游戏问答进入检索扩展节点，普通聊天和报告追问不执行知识库检索；学生成绩始终从业务数据读取。文本片段可进入上下文、图片结果可返回引用。**向量库、文档入库、OCR、图片上传、图片向量检索和视觉模型调用尚未实现**；目前未直接读取图片内容，只能使用将来检索器提供的文字说明。`AGENT_RAG_ENABLED=true` 会明确拒绝启动，接入真实 Retriever 后再调整启用逻辑。
 
 ## 独立容器部署
 
@@ -206,6 +243,6 @@ make test
 make check
 ```
 
-自动化测试使用临时 SQLite、真实 Alembic 迁移、FastAPI ASGI、真实 LangGraph 和模型协议客户端；外部 Nacos/模型/测评接口使用 HTTP 协议替身，不需要也不会使用生产凭据。覆盖问答和版本快照、越权拒绝、幂等、租约、SSE、训练跳过、数据延迟、来源修订和模型降级等行为。
+自动化测试使用临时 SQLite、真实 Alembic 迁移、FastAPI ASGI、真实 LangGraph 和模型协议客户端；外部 Nacos/模型/测评接口使用 HTTP 协议替身，不需要也不会使用生产凭据。覆盖普通聊天与按需规则、报告追问、版本快照、越权拒绝、幂等、租约、SSE、训练跳过、数据延迟、来源修订和模型降级等行为。
 
 开发使用 SQLite；Compose 使用 PostgreSQL。真实模型质量、Nacos 部署连通性、外部游戏接口、PostgreSQL 多进程并发、容器构建和完整前端接入需要在对应环境继续验收，不能用当前协议测试替代。
