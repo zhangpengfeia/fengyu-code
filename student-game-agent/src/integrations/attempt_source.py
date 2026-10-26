@@ -4,9 +4,9 @@ from urllib.parse import quote
 import httpx
 from pydantic import ValidationError
 
-from student_game_agent.config.settings import Settings
-from student_game_agent.schemas.api import AttemptData
-from student_game_agent.utils.errors import AppError
+from src.config.settings import Settings
+from src.schemas.api import AttemptData
+from src.utils.errors import AppError
 
 
 class AttemptSource(Protocol):

@@ -4,9 +4,9 @@ from uuid import uuid4
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
-from student_game_agent.backends.models import EvaluationJob
-from student_game_agent.schemas.api import Principal
-from student_game_agent.utils.errors import AppError
+from src.backends.models import EvaluationJob
+from src.schemas.api import Principal
+from src.utils.errors import AppError
 
 
 class EvaluationRepository:

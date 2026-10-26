@@ -56,7 +56,7 @@ GitHub Actions 保留在仓库根目录。星球源码工作流仅进行检查�
 
 ## 添加其他项目
 
-学生游戏 Agent 后端位于 [student-game-agent](student-game-agent/README.md)，独立管理 Python 依赖、Nacos 游戏规则、问答流程和每局评价 Worker，并预留独立网页及悬浮窗 SDK 目录。
+学生游戏 Agent 后端位于 [student-game-agent](student-game-agent/README.md)，独立管理 Python 依赖、Nacos 游戏规则、问答流程和每局评价 Worker。学生网页及悬浮学伴组件位于 [student-web](student-web/README.md)。在后端运行 `uv run --locked python scripts/dev_mock.py --web-port 5176` 可启动完整 mock 联调环境，覆盖登录、聊天、模拟游戏结束、生成报告和报告追问。
 
 在仓库根目录新增同级项目文件夹，各自维护依赖、锁文件、构建产物和部署文件。为新项目在 `.github/workflows/` 创建独立工作流，设置对应目录的路径过滤、工作目录、缓存锁文件和 Docker 上下文。
 

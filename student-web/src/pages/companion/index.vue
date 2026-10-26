@@ -3,7 +3,7 @@ import { ref } from "vue";
 import AppIcon from "@/shared/components/AppIcon.vue";
 import MascotAvatar from "@/shared/components/MascotAvatar.vue";
 import { useCompanionPreferences } from "@/features/companion/preferences";
-import ChatPanel from "./components/ChatPanel.vue";
+import ChatPanel from "@/features/companion/components/ChatPanel.vue";
 import TutorPanel from "./components/TutorPanel.vue";
 import CustomizePanel from "./components/CustomizePanel.vue";
 
@@ -18,13 +18,6 @@ const { preferences } = useCompanionPreferences();
 
 <template>
   <div class="page-stack companion-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">你的专属学习伙伴</p>
-        <h1>有问题，找{{ preferences.name }}</h1>
-        <p class="muted">陪你一起思考，让每一次探索都有收获。</p>
-      </div>
-    </div>
     <section class="companion-frame card">
       <header class="companion-bar">
         <img

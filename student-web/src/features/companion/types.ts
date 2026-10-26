@@ -26,6 +26,8 @@ export interface ChatAnswer {
   citations: Citation[];
   scene?: "GENERAL_CHAT" | "GAME_QA" | "REPORT_QA";
   needs_clarification?: boolean;
+  model?: string | null;
+  evaluation_id?: string | null;
 }
 
 export interface ChatMessage {

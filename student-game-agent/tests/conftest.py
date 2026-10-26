@@ -8,9 +8,9 @@ import pytest
 from alembic import command
 from alembic.config import Config
 
-from student_game_agent.app.container import Container
-from student_game_agent.app.main import create_app
-from student_game_agent.config.settings import Settings
+from src.app.container import Container
+from src.app.main import create_app
+from src.config.settings import Settings
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 

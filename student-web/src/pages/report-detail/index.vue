@@ -55,7 +55,6 @@ onBeforeUnmount(() => {
               }}<span>·</span>{{ formatReportDate(report.updatedAt)
               }}<span>·</span>游戏测评报告
             </p>
-            <p class="hero-note">每一次思考，都让你离更好的自己近一点。</p>
           </div>
           <MedalBadge :medal="report.medal" :size="112" show-label /><span
             class="hero-spark one"
@@ -104,7 +103,7 @@ onBeforeUnmount(() => {
                   ? "基础模板"
                   : report.generationMode === "PREVIEW"
                     ? "示例分析"
-                    : "本局分析"
+                    : report.generationMode === "MOCK" ? "Mock 分析" : "本局分析"
               }}</span>
             </div>
             <p v-if="report.performance" class="performance">
@@ -120,7 +119,7 @@ onBeforeUnmount(() => {
             <RouterLink
               :to="{
                 path: '/companion',
-                query: report.gameCode ? { game: report.gameCode } : undefined,
+                query: { ...(report.gameCode ? { game: report.gameCode } : {}), evaluation: report.id },
               }"
               class="btn btn-primary"
               >和学伴聊聊这局游戏<AppIcon name="arrow-right" :size="16"

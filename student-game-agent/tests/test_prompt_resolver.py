@@ -4,12 +4,12 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from student_game_agent.agents.policy import LEGACY_EVALUATION_BOUNDARY
-from student_game_agent.config.game_catalog import Catalog, Game
-from student_game_agent.schemas.api import AttemptData, PromptSnapshot
-from student_game_agent.schemas.prompt_context import PromptBundle
-from student_game_agent.services.prompt_resolver import PromptResolver
-from student_game_agent.utils.errors import AppError
+from src.agents.policy import LEGACY_EVALUATION_BOUNDARY
+from src.config.game_catalog import Catalog, Game
+from src.schemas.api import AttemptData, PromptSnapshot
+from src.schemas.prompt_context import PromptBundle
+from src.services.prompt_resolver import PromptResolver
+from src.utils.errors import AppError
 
 
 def settings():

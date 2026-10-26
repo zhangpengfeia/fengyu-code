@@ -1,8 +1,8 @@
 import asyncio
 import logging
 
-from student_game_agent.app.container import Container
-from student_game_agent.config.settings import Settings
+from src.app.container import Container
+from src.config.settings import Settings
 
 
 async def main() -> None:

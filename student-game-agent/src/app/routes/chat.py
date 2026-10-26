@@ -5,9 +5,9 @@ from uuid import UUID
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
-from student_game_agent.app.dependencies import Services, Student
-from student_game_agent.schemas.api import ChatRequest, ChatResponse
-from student_game_agent.utils.errors import AppError
+from src.app.dependencies import Services, Student
+from src.schemas.api import ChatRequest, ChatResponse
+from src.utils.errors import AppError
 
 router = APIRouter(prefix="/api/v1", tags=["chat"])
 

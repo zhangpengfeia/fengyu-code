@@ -5,9 +5,9 @@ import time
 
 import httpx
 
-from student_game_agent.config.settings import Settings
-from student_game_agent.schemas.api import PromptSnapshot
-from student_game_agent.utils.errors import AppError
+from src.config.settings import Settings
+from src.schemas.api import PromptSnapshot
+from src.utils.errors import AppError
 
 
 class NacosPromptRepository:

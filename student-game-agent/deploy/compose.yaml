@@ -4,7 +4,7 @@ x-agent: &agent
   build:
     context: ..
     dockerfile: deploy/Dockerfile
-  env_file: ../backend/.env
+  env_file: ../.env
   environment:
     AGENT_DATABASE_URL: postgresql+psycopg://agent:${POSTGRES_PASSWORD:?请设置独立数据库密码}@postgres:5432/student_game_agent
   restart: unless-stopped
@@ -45,7 +45,7 @@ services:
 
   worker:
     <<: *agent
-    command: ["/app/.venv/bin/python", "-m", "student_game_agent.workers.evaluation_worker"]
+    command: ["/app/.venv/bin/python", "-m", "src.workers.evaluation_worker"]
     depends_on:
       migrate: {condition: service_completed_successfully}
 

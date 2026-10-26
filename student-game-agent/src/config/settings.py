@@ -9,13 +9,16 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="AGENT_", env_file=".env", extra="ignore")
 
     environment: Literal["development", "production", "test"] = "development"
+    mock_mode: bool = False
+    mock_worker_enabled: bool = True
+    mock_data_path: Path = Path(__file__).resolve().parents[2] / "config/mock.json"
     database_url: str = "sqlite+aiosqlite:///./data/agent.db"
     integration_app_id: str = "education-platform"
     service_api_key: SecretStr
     jwt_secret: SecretStr
     token_ttl_seconds: int = Field(default=900, ge=60, le=3600)
     cors_origins: list[str] = Field(default_factory=list)
-    catalog_path: Path = Path(__file__).resolve().parents[3] / "config/games.yaml"
+    catalog_path: Path = Path(__file__).resolve().parents[2] / "config/games.yaml"
     nacos_url: str = "http://127.0.0.1:8848"
     nacos_namespace: str = "student-game-agent"
     nacos_username: str = "nacos"
@@ -67,6 +70,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_options(self) -> "Settings":
+        if self.mock_mode and self.environment == "production":
+            raise ValueError("生产环境不能启用 mock 模式")
         if self.service_api_key == self.jwt_secret:
             raise ValueError("集成凭据和 JWT 签名密钥必须分别生成")
         if self.rag_enabled:
@@ -74,3 +79,7 @@ class Settings(BaseSettings):
         if "*" in self.cors_origins:
             raise ValueError("CORS 必须明确列出允许的宿主来源")
         return self
+
+    @property
+    def runtime_model_name(self) -> str:
+        return "mock-local" if self.mock_mode else self.llm_model

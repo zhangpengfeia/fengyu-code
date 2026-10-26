@@ -31,6 +31,31 @@ npm run build
 npm run build:preview
 ```
 
+## 前后端 mock 联调
+
+本模式实际请求 FastAPI 后端，与 `dev:preview` 的静态设计预览分开。从同级后端一键启动：
+
+```sh
+cd ../student-game-agent
+uv sync --locked
+uv run --locked python scripts/dev_mock.py --web-port 5176
+```
+
+打开 <http://127.0.0.1:5176/login>，选择学生登录，学校编号 `11000`，学号 `demo`，密码 `demo123`。后端自动迁移独立的 mock 数据库并启动评价消费者，不需要真实模型、Nacos 或教育平台。
+
+可验证：登录 → 自由提问；课程 → 关卡 → 模拟结束本局 → 生成报告 → 继续追问。右下角学伴按钮可展开同一套聊天面板。后端提供初始课程、榜单和两条报告，页面、回答与报告均显示 Mock 标识。改密、兑换不在 mock 支持范围，不返回虚假成功。
+
+```sh
+# 另一终端，服务保持运行
+npm run test:mock
+# 编译专用 mock 产物；正式部署仍用 npm run build
+npm run build:mock
+```
+
+单独启动时：后端运行 `make mock-api`，前端运行 `npm run dev:mock -- --port 5176`。`MOCK_AGENT_API_TARGET` 指向本地 mock API，默认 8088；开发代理将 `/education-api` 映射到后端 `/dev/education`、`/agent-api` 映射到 Agent。仅 mock 模式默认使用后端 `/biz/auth/agent-token` 桥接，浏览器不包含任何服务密钥。真实模式继续使用 `VITE_AGENT_TOKEN_ENDPOINT`，不会在错误时自动降级为 mock。
+
+配置与后端流程见 [后端说明](../student-game-agent/README.md)。
+
 ## 目录约定
 
 ```text
@@ -59,6 +84,7 @@ student-web/
 │   │   ├── learning/            # 报告/排行契约、雷达图、奖章
 │   │   ├── companion/           # SSE、聊天状态、历史、浏览器偏好
 │   │   └── profile/             # 学生个人业务接口
+│   ├── widget/                  # 学生站内悬浮窗入口，复用 features/companion
 │   └── shared/
 │       ├── api/                 # 请求、错误、教育/Agent 会话
 │       ├── components/          # 图标、学伴头像、加载/错误/空态
@@ -89,7 +115,7 @@ student-web/
 
 ## Agent 登录桥接
 
-Agent 不接受教育平台令牌，也没有学生账号密码登录接口。教育平台需增加一个学生可调用的换票接口：校验当前学生身份后，由后端携带集成凭据请求 Agent 的 `/internal/v1/tokens`，再返回 `{access_token, expires_in}`。
+Agent 不接受教育平台令牌，也没有学生账号密码登录接口。教育平台需增加一个学生可调用的换票接口：校验当前学生身份后，由后端携带集成凭据请求 Agent 的 `/internal/v1/tokens`，再返回 `{access_token, expires_in}`。Mock 联调已在 Agent 的开发专用路由实现此桥接；真实教育平台仍需实现对应接口。
 
 将该教育平台接口路径填入 `VITE_AGENT_TOKEN_ENDPOINT`。默认留空；未接通时学伴和报告显示明确提示。此项目不猜测一个不存在的后端路径，也不会将服务集成密钥、模型密钥或 JWT 签名密钥放入前端。教育令牌仅保存在 sessionStorage，Agent 短期令牌仅保存在内存。
 
@@ -100,7 +126,7 @@ Agent 不接受教育平台令牌，也没有学生账号密码登录接口。�
 - 能力百分比、册次趋势、学习天数与荣誉汇总暂无统一数据接口。真实模式显示单局事实和可获得的统计，雷达图与荣誉墙仅在明确的设计预览中展示示例。
 - 校园榜当前后端拒绝学生访问，页面明确禁用校园榜；班级榜遵守现有角色权限。
 - 学伴昵称、头像、语音偏好保存在当前浏览器，不跨设备同步。没有头像上传、语音合成或语音识别后端，不显示虚假的试听/上传成功。
-- 当前交付学生前端，尚未实现面向第三方宿主的 `widget-sdk` 或后端新增接口。
+- 站内悬浮窗位于 `src/widget/AgentWidget.vue`，与独立学伴页面复用 `features/companion/components/ChatPanel.vue`；面向第三方宿主的独立 `widget.js` SDK 与嵌入鉴权尚未实现。
 - 星球页面已复用仓库素材；真实游戏逻辑仍由现有 `/play/` 项目提供。
 
 ## 移动与桌面适配

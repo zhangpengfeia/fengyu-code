@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { getCaptcha } from "@/features/auth/api";
 import { useAuthStore } from "@/features/auth/store";
 import type { Captcha, LoginInput } from "@/features/auth/types";
-import { isPreview } from "@/shared/config";
+import { isPreview, isMock } from "@/shared/config";
 import AppIcon from "@/shared/components/AppIcon.vue";
 const auth = useAuthStore();
 const route = useRoute();
@@ -79,9 +79,8 @@ onMounted(() => {
 </script>
 <template>
   <div class="student-login-form">
-    <p class="eyebrow">欢迎回到学习空间</p>
-    <h2>你好，欢迎回来<span>✦</span></h2>
-    <p class="login-description">登录你的学习空间，开启今天的探索。</p>
+    <h2>登录</h2>
+
     <div v-if="isPreview" class="notice preview-notice">
       当前为设计预览，无需输入账号密码。<RouterLink
         class="btn btn-primary"
@@ -90,6 +89,9 @@ onMounted(() => {
       /></RouterLink>
     </div>
     <form v-else @submit.prevent="submit">
+      <p v-if="isMock" class="notice" role="note">
+        Mock 联调账号：学校 11000，学号 demo，密码 demo123。登录将请求本地后端。
+      </p>
       <div class="segmented">
         <button
           v-for="item in [

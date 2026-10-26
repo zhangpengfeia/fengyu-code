@@ -4,6 +4,5 @@
 **/.pytest_cache
 **/.ruff_cache
 **/data
-backend/tests
-frontend
-widget-sdk
+tests
+scripts

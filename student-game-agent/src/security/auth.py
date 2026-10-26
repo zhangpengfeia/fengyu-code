@@ -5,8 +5,8 @@ from uuid import uuid4
 import jwt
 from fastapi import Header, Request
 
-from student_game_agent.schemas.api import Principal, TokenRequest
-from student_game_agent.utils.errors import AppError
+from src.schemas.api import Principal, TokenRequest
+from src.utils.errors import AppError
 
 
 def require_service(request: Request, x_integration_key: str | None = Header(default=None)) -> None:

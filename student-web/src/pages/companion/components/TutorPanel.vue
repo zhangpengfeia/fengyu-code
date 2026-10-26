@@ -5,7 +5,6 @@ import AppIcon from "@/shared/components/AppIcon.vue";
 import AsyncState from "@/shared/components/AsyncState.vue";
 import { listTutorReports } from "@/features/companion/api";
 import type { TutorReport } from "@/features/companion/types";
-import { isPreview } from "@/shared/config";
 
 const reports = ref<TutorReport[]>([]);
 const loading = ref(false);
@@ -70,14 +69,6 @@ onMounted(load);
       @retry="load"
     >
       <template v-if="selected?.report">
-        <div class="tutor-intro">
-          <span class="eyebrow">每一步成长，都算数</span>
-          <h2>每一步，都有新的成长</h2>
-          <p>看看你的最新表现，和我一起找到下一个小目标。</p>
-          <span v-if="isPreview" class="preview-badge"
-            >设计预览 · 示例测评</span
-          >
-        </div>
         <div class="tutor-grid">
           <section class="latest-report">
             <div class="report-card-title">
@@ -188,9 +179,7 @@ onMounted(load);
     </AsyncState>
     <div class="aggregation-note">
       <AppIcon name="sparkles" :size="17" />
-      <p>
-        综合能力与册次趋势暂未开放，当前可以查看单局测评表现和学习建议。
-      </p>
+      <p>综合能力与册次趋势暂未开放，当前可以查看单局测评表现和学习建议。</p>
     </div>
   </div>
 </template>

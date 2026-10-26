@@ -2,7 +2,8 @@
 import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useAuthStore } from "@/features/auth/store";
-import { isPreview } from "@/shared/config";
+import { isPreview, isMock } from "@/shared/config";
+import AgentWidget from "@/widget/AgentWidget.vue";
 import StudentNavigation from "./components/StudentNavigation.vue";
 import AppIcon from "@/shared/components/AppIcon.vue";
 import MascotAvatar from "@/shared/components/MascotAvatar.vue";
@@ -44,6 +45,7 @@ const isCompanion = computed(() => route.path === "/companion");
         </div>
         <div class="topbar-right">
           <span v-if="isPreview" class="preview-chip">设计预览</span
+          ><span v-if="isMock" class="preview-chip">Mock 联调</span
           ><span class="date-label">{{ dateLabel }}</span
           ><RouterLink
             to="/companion"
@@ -72,19 +74,13 @@ const isCompanion = computed(() => route.path === "/companion");
             >查看登录页<AppIcon name="arrow-right" :size="13"
           /></RouterLink>
         </div>
+        <div v-if="isMock" class="preview-banner" role="status">
+          <span class="preview-dot" />Mock 联调模式：数据和 AI 回复由本地后端生成示例，未调用真实大模型。
+        </div>
         <RouterView />
-        <footer class="page-footer">
-          每一点小进步，都在让你闪闪发光<span>枫语趣学 · 学生成长空间</span>
-        </footer>
       </main>
     </div>
-    <RouterLink
-      v-if="!isCompanion"
-      to="/companion"
-      class="floating-companion"
-      aria-label="和智能学伴聊聊"
-      ><MascotAvatar :size="48" /><span>智能学伴</span><i
-    /></RouterLink>
+    <AgentWidget v-if="!isCompanion" />
     <div class="bottom-nav"><StudentNavigation mobile /></div>
   </div>
 </template>
@@ -290,33 +286,6 @@ const isCompanion = computed(() => route.path === "/companion");
   gap: 12px;
   line-height: 1.8;
 }
-.floating-companion {
-  position: fixed;
-  bottom: 26px;
-  right: 28px;
-  z-index: 35;
-  border-radius: 40px;
-  background: #fff;
-  box-shadow: 0 6px 28px #305bff26;
-  border: 1px solid #e1e9ff;
-  padding: 4px 16px 4px 4px;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 600;
-}
-.floating-companion i {
-  position: absolute;
-  width: 8px;
-  height: 8px;
-  background: #25c598;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  left: 39px;
-  top: 4px;
-}
 .bottom-nav {
   display: none;
 }
@@ -399,15 +368,6 @@ const isCompanion = computed(() => route.path === "/companion");
     border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom);
     backdrop-filter: blur(14px);
-  }
-  .floating-companion {
-    bottom: calc(85px + env(safe-area-inset-bottom));
-    right: 15px;
-    padding: 3px;
-    border-radius: 50%;
-  }
-  .floating-companion > span:not(.mascot-avatar) {
-    display: none;
   }
   .page-footer {
     margin-top: 30px;

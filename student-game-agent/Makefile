@@ -1,4 +1,4 @@
-.PHONY: install migrate dev worker test check
+.PHONY: install migrate dev worker test check mock mock-api
 
 install:
 	uv sync --locked
@@ -8,10 +8,16 @@ migrate:
 	uv run --locked alembic upgrade head
 
 dev:
-	uv run --locked uvicorn student_game_agent.app.main:create_app --factory --host 127.0.0.1 --port 8088 --reload
+	uv run --locked uvicorn src.app.main:create_app --factory --host 127.0.0.1 --port 8088 --reload
 
 worker:
-	uv run --locked python -m student_game_agent.workers.evaluation_worker
+	uv run --locked python -m src.workers.evaluation_worker
+
+mock:
+	uv run --locked python scripts/dev_mock.py
+
+mock-api:
+	uv run --locked python scripts/dev_mock.py --api-only
 
 test:
 	uv run --locked pytest -q

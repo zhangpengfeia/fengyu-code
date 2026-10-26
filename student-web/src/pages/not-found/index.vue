@@ -4,7 +4,7 @@ import AppIcon from "@/shared/components/AppIcon.vue";
 <template>
   <main class="not-found">
     <span>404</span>
-    <h1>好像走进了未知星球</h1>
+    <h1>页面未找到</h1>
     <p>这条路径还没有被探索，回到首页继续吧。</p>
     <RouterLink class="btn btn-primary" to="/home"
       ><AppIcon name="home" :size="17" />返回学习首页</RouterLink

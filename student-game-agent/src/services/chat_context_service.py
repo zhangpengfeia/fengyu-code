@@ -1,11 +1,11 @@
 import re
 
-from student_game_agent.backends.evaluation_repository import EvaluationRepository
-from student_game_agent.backends.models import EvaluationJob
-from student_game_agent.config.game_catalog import Catalog
-from student_game_agent.schemas.api import AttemptData, ChatRequest, Principal, PromptSnapshot
-from student_game_agent.schemas.chat_context import ChatContext
-from student_game_agent.utils.errors import AppError
+from src.backends.evaluation_repository import EvaluationRepository
+from src.backends.models import EvaluationJob
+from src.config.game_catalog import Catalog
+from src.schemas.api import AttemptData, ChatRequest, Principal, PromptSnapshot
+from src.schemas.chat_context import ChatContext
+from src.utils.errors import AppError
 
 GAME_WORDS = (
     "游戏",

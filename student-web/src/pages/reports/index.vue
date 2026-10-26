@@ -93,12 +93,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page-stack reports-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">我的学习旅程</p>
-        <h1>每一步成长，都值得记录<span class="heading-spark">✦</span></h1>
-        <p class="muted">发现自己的闪光点，和昨天的自己一起进步。</p>
-      </div>
+    <div class="page-actions">
       <button
         class="btn btn-soft refresh-btn"
         :disabled="loading || loadingMore"

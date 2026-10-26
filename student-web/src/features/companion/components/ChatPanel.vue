@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { onMounted, ref, useId } from "vue";
 import { useRoute } from "vue-router";
 import AppIcon from "@/shared/components/AppIcon.vue";
 import MascotAvatar from "@/shared/components/MascotAvatar.vue";
@@ -10,14 +10,17 @@ import type { CompanionGame } from "@/features/companion/types";
 import { isPreview } from "@/shared/config";
 
 const route = useRoute();
+const props = defineProps<{ initialGame?: string; evaluation?: string }>();
 const games = ref<CompanionGame[]>([]);
 const gameError = ref("");
 const loadingGames = ref(false);
 const question = ref("");
 const input = ref<HTMLTextAreaElement>();
+const inputId = useId();
 const { preferences } = useCompanionPreferences();
 const {
   gameCode,
+  evaluationId,
   messages,
   sending,
   loadingHistory,
@@ -72,9 +75,13 @@ function onKeydown(event: KeyboardEvent) {
 onMounted(async () => {
   await loadGames();
   const requested =
-    typeof route.query.game === "string" ? route.query.game : "";
+    props.initialGame || (typeof route.query.game === "string" ? route.query.game : "");
+  const reportId =
+    props.evaluation ||
+    (typeof route.query.evaluation === "string" ? route.query.evaluation : "");
   await changeContext(
     games.value.some((game) => game.code === requested) ? requested : "",
+    reportId,
   );
 });
 </script>
@@ -109,6 +116,10 @@ onMounted(async () => {
       <div v-if="isPreview" class="preview-note">
         <AppIcon name="sparkles" :size="14" />设计预览 ·
         回复为示例内容，未连接真实智能服务
+      </div>
+      <div v-if="evaluationId" class="preview-note" role="status">
+        正在讨论所选本局报告。
+        <button type="button" @click="changeContext(gameCode)">切换为自由问答</button>
       </div>
       <div v-if="gameError" class="chat-alert" role="alert">
         {{ gameError
@@ -186,11 +197,11 @@ onMounted(async () => {
         </button>
       </div>
       <form class="chat-composer" @submit.prevent="submit">
-        <label class="sr-only" for="companion-question"
+        <label class="sr-only" :for="inputId"
           >输入想问学伴的问题</label
         >
         <textarea
-          id="companion-question"
+          :id="inputId"
           ref="input"
           v-model="question"
           placeholder="把你的问题告诉我吧…"

@@ -49,12 +49,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page-stack ranking-page">
-    <div class="page-heading">
-      <div>
-        <p class="eyebrow">一起闪闪发光</p>
-        <h1>一起向上，闪闪发光<span class="heading-spark">✦</span></h1>
-        <p class="muted">为伙伴喝彩，也为自己的每一份努力鼓掌。</p>
-      </div>
+    <div class="page-actions">
       <button
         class="btn btn-soft refresh-btn"
         :disabled="loading"

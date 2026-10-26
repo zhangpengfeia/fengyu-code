@@ -1,6 +1,6 @@
 from typing import Literal
 
-from student_game_agent.schemas.api import PromptSnapshot, StrictModel
+from src.schemas.api import PromptSnapshot, StrictModel
 
 
 class ChatContext(StrictModel):

@@ -3,13 +3,13 @@ import json
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.graph import END, START, StateGraph
 
-from student_game_agent.agents.policy import BOUNDARY
-from student_game_agent.agents.state import ChatState
-from student_game_agent.rag.retriever import DisabledRetriever, Retriever
-from student_game_agent.rag.schemas import RetrievalQuery
-from student_game_agent.schemas.api import Citation
-from student_game_agent.services.prompt_resolver import PromptResolver
-from student_game_agent.utils.model_gateway import ModelGateway
+from src.agents.policy import BOUNDARY
+from src.agents.state import ChatState
+from src.rag.retriever import DisabledRetriever, Retriever
+from src.rag.schemas import RetrievalQuery
+from src.schemas.api import Citation
+from src.services.prompt_resolver import PromptResolver
+from src.utils.model_gateway import ModelGateway
 
 
 class QuestionWorkflow:

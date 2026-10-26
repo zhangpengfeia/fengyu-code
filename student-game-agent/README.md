@@ -2,55 +2,74 @@
 
 独立的学生游戏后端工程，参考 `ai-infrastructure-main/src/deal_pilot` 的功能分层重新整理，未复制教学课件、Notebook、沙箱、部署工具、网页搜索或实验 Webhook。现有教育平台和参考工程保持不变。
 
-应用有两个入口：**学生自由提问 → 确认上下文 → 按需加载模板、游戏规则或已有报告 → 回答**；**游戏结束事件 → 获取权威本局数据 → 加载本局规则与评价模板 → 生成并保存报告**。两条链路共用 Prompt 解析服务，评价由独立 Worker 执行。`frontend/` 和 `widget-sdk/` 为后续独立网页与悬浮窗预留，目前没有前端实现。
+应用有两个入口：**学生自由提问 → 确认上下文 → 按需加载模板、游戏规则或已有报告 → 回答**；**游戏结束事件 → 获取权威本局数据 → 加载本局规则与评价模板 → 生成并保存报告**。两条链路共用 Prompt 解析服务，评价由独立 Worker 执行。独立网页及悬浮学伴组件在同级 `../student-web/`，后端不再包含前端占位目录。
 
 ## 工程目录
 
 ```text
 student-game-agent/
-├── backend/
-│   ├── src/student_game_agent/
-│   │   ├── app/                         FastAPI 装配、依赖注入与路由
-│   │   │   ├── main.py                  应用工厂
-│   │   │   ├── container.py             基础设施和服务的统一装配
-│   │   │   └── routes/                  health/auth/games/chat/evaluations
-│   │   ├── config/                      环境配置、游戏目录和 Nacos
-│   │   │   ├── settings.py
-│   │   │   ├── game_catalog.py
-│   │   │   └── nacos/prompts.py         认证、精确版本查询与缓存
-│   │   ├── agents/                      Agent 状态与模型流程
-│   │   │   ├── state.py
-│   │   │   ├── question_agent.py        LangGraph 按需问答
-│   │   │   └── evaluation_agent.py      结构化本局评价
-│   │   ├── services/                    上下文解析、问答幂等、评价任务与重试
-│   │   │   └── prompt_resolver.py       按场景解析公共、任务和规则模板
-│   │   ├── backends/                    数据库、ORM、聊天与评价 Repository
-│   │   ├── integrations/               权威测评数据来源契约与 HTTP 适配器
-│   │   ├── rag/                         文本/图片检索契约，当前关闭
-│   │   ├── schemas/                     请求、响应与业务事实数据模型
-│   │   ├── security/                    服务凭据校验与短期学生 JWT
-│   │   ├── middlewares/                 请求 ID、错误处理和响应策略
-│   │   ├── utils/                       模型网关与通用错误类型
-│   │   └── workers/                     独立评价 Worker 进程
-│   ├── config/                          游戏绑定与可发布 Prompt 内容
-│   ├── migrations/                      Alembic 数据库迁移
-│   ├── tests/                           业务、接口、协议与持久化测试
-│   ├── .env.example
-│   ├── pyproject.toml
-│   └── uv.lock
-├── frontend/                            独立网页工程预留
-├── widget-sdk/                          悬浮窗接入 SDK 预留
-└── deploy/                              Dockerfile 与独立 Compose
+├── src/
+│   ├── app/             FastAPI 应用工厂、装配、依赖与路由
+│   ├── config/          环境配置、游戏目录、Nacos Prompt 缓存
+│   ├── agents/          自由问答、结构化评价与 LangGraph 状态
+│   ├── services/        上下文、Prompt 解析、问答与评价任务
+│   ├── backends/        数据库、ORM、聊天与评价 Repository
+│   ├── integrations/    权威本局数据来源协议与 HTTP 适配器
+│   ├── rag/             文本与图片检索扩展入口（当前关闭）
+│   ├── mock/            仅本地联调：登录、数据源、规则与模型替身
+│   ├── schemas/         请求、响应和可信业务事实
+│   ├── security/        集成凭据、学生 JWT 与权限
+│   ├── middlewares/     请求 ID、错误与响应策略
+│   ├── utils/           模型网关与错误类型
+│   └── workers/         独立评价 Worker
+├── config/              games.yaml、prompts/、mock.json
+├── migrations/          Alembic 数据库迁移
+├── scripts/dev_mock.py  一键启动本地前后端联调
+├── tests/               接口、业务、持久化与 mock 流程测试
+├── deploy/              Dockerfile、Compose
+├── .env.example
+├── pyproject.toml
+└── uv.lock
 ```
 
 路由只负责 HTTP 入参、认证依赖与响应；Agent 不访问数据库；业务服务组织 Repository、Agent 和外部适配器。增加数据来源时放入 `integrations/`，增加检索实现时放入 `rag/`。不要把业务逻辑重新堆到 `app/main.py`。
+
+## 一键 mock 联调（当前阶段）
+
+首次安装依赖，分别在本工程执行 `uv sync --locked`，在 `../student-web` 执行 `npm ci`。然后从本工程启动：
+
+```sh
+uv run --locked python scripts/dev_mock.py --web-port 5176
+```
+
+- 学生端：<http://127.0.0.1:5176/login>；学校编号 `11000`，学号 `demo`，密码 `demo123`。
+- API 文档：<http://127.0.0.1:8088/docs>。前端真实发送 HTTP/SSE 请求，经 Vite 代理进入本后端。
+- 启动器自动迁移独立的 `data/mock/agent.db`，生成本地随机密钥并保存在权限为 0600 的 `data/mock/keys.json`；不会覆盖真实 `.env` 或真实业务数据库。目录已忽略提交。
+- 后端加载 `config/mock.json` 中的学校、学生、课程、榜单、两条初始报告和本局指标。Mock 模型与本地规则替身不请求外部模型、Nacos 或游戏数据接口。
+- 进入课程 → 选择关卡 → 点击“模拟结束本局并生成评价” → Worker 自动生成报告 → 查看报告 → 点击学伴追问。也可在学伴页面自由提问、询问指定游戏规则，或展开右下角悬浮学伴。
+- 所有 mock 规则、成绩、徽章和回答均为联调样例，不作为正式玩法或真实学生结论。页面有 Mock 标识，报告 `generation_mode=MOCK`，接口带 `X-Data-Mode: mock`。
+- Mock 登录换取 Agent 短期令牌发生在后端；浏览器不接触模型密钥、集成密钥或 JWT 签名密钥。
+
+`Ctrl+C` 同时停止本次启动的 API 和前端，保留联调报告。端口占用时启动器报错，可用 `--api-port` / `--web-port` 指定空闲端口；不会停止已有服务。单独启动 API 使用 `make mock-api`，前端使用 `npm run dev:mock`。
+
+运行中的端到端接口检查（默认检查 5176，可用 `STUDENT_MOCK_ORIGIN` 修改本地地址）：
+
+```sh
+cd ../student-web
+npm run test:mock
+```
+
+该检查经过前端代理验证登录、令牌桥接、普通问答与幂等、游戏规则问答、游戏结束及后台评价、报告 SSE 追问、退出登录。它会增加一条明确标记的 mock 报告。
+
+`AGENT_MOCK_MODE` 默认关闭，`production + mock` 拒绝启动，mock 路由在正常模式不注册。当前 mock 未实现改密、兑换等真实业务写入；这些入口不会伪造成功。`dev:preview` 是前端静态设计预览，与此真实 HTTP 联调模式不同。
+
+切换真实服务时停止 mock 启动器，按下节配置 `.env`、Nacos、模型与权威数据接口，分别启动 API/Worker；前端使用 `npm run dev` 并配置真实教育平台令牌桥接。模型预留项为 `AGENT_LLM_BASE_URL`、`AGENT_LLM_API_KEY`、`AGENT_LLM_MODEL`，密钥仅放后端。
 
 ## 本地启动
 
 使用 Python **3.13.11** 与 `uv`。以下命令从本工程目录执行：
 
 ```sh
-cd backend
 uv python install 3.13.11
 uv sync --locked
 cp .env.example .env
@@ -62,7 +81,7 @@ cp .env.example .env
 uv run --locked python -c 'import secrets; print(secrets.token_hex(32))'
 ```
 
-SQLite 仅用于本机开发，数据位置为 `backend/data/agent.db`。准备数据库并启动 API：
+SQLite 仅用于本机开发，数据位置为 `data/agent.db`。准备数据库并启动 API：
 
 ```sh
 make migrate
@@ -71,7 +90,7 @@ make dev
 
 已有数据库也要执行 `make migrate`，升级至 `0002`，以支持无游戏的普通会话及报告上下文；不要清库重建。数据库迁移不代替 Nacos 配置升级，开始业务联调前还需发布下文的新模板。
 
-API 地址为 `http://127.0.0.1:8088`，交互文档为 `http://127.0.0.1:8088/docs`。另开终端，在同一 `backend/` 目录启动评价 Worker：
+API 地址为 `http://127.0.0.1:8088`，交互文档为 `http://127.0.0.1:8088/docs`。另开终端，在同一工程目录启动评价 Worker：
 
 ```sh
 make worker
@@ -87,10 +106,10 @@ make worker
 
 | Prompt key | 内容来源 |
 | --- | --- |
-| `companion.base` | `backend/config/prompts/companion.base.md`，通用表达与事实约束 |
-| `companion.chat` | `backend/config/prompts/companion.chat.md`，自由问答与报告追问任务 |
-| `companion.evaluation` | `backend/config/prompts/companion.evaluation.md` |
-| `game.rules.eight-pieces` 等 | 经确认的真实玩法完整文本；绑定见 `backend/config/games.yaml` |
+| `companion.base` | `config/prompts/companion.base.md`，通用表达与事实约束 |
+| `companion.chat` | `config/prompts/companion.chat.md`，自由问答与报告追问任务 |
+| `companion.evaluation` | `config/prompts/companion.evaluation.md` |
+| `game.rules.eight-pieces` 等 | 经确认的真实玩法完整文本；绑定见 `config/games.yaml` |
 
 `game-rules.md.example` 只是规则维护格式，不是可用的游戏规则。第一阶段使用完整 Prompt，不提供运行时任意变量执行；未填写的 `{{...}}`、空模板、错误版本和不存在的规则都会拒绝使用。缓存仅命中相同 key/version，不在请求失败后切换到其他版本。
 
@@ -159,7 +178,7 @@ make worker
 
 响应包含回答、会话 ID、Prompt/报告引用、`scene` 和 `needs_clarification`。场景为 `GENERAL_CHAT`、`GAME_QA` 或 `REPORT_QA`；`game_code`、`game_rule_version`、`evaluation_id` 和 `model` 在不适用时为 `null`。追问时传回 `conversation_id` 并生成新的 `request_id`。同一问题重试复用原 `request_id`，会返回已保存结果；同 ID 改写问题返回 409。同一会话不允许并发生成。学生与学校范围由 JWT 注入，不接受请求体覆盖。
 
-`POST /api/v1/chat/stream` 提供 `status → answer → done` 的 SSE 事件；当前返回完整最终答案，**尚未实现逐 Token 推送**。事件流已开始后的业务错误通过 `error` 事件传递。前端使用带认证头的 `fetch`；断线后用原请求 ID 重试。悬浮窗 SDK、一次性嵌入票据、原生 App 桥接和界面自适应仍留待前端阶段实现。
+`POST /api/v1/chat/stream` 提供 `status → answer → done` 的 SSE 事件；当前返回完整最终答案，**尚未实现逐 Token 推送**。事件流已开始后的业务错误通过 `error` 事件传递。前端使用带认证头的 `fetch`；断线后用原请求 ID 重试。学生网页已复用同一聊天组件实现响应式悬浮窗；面向第三方宿主的独立脚本 SDK、一次性嵌入票据和原生 App 桥接尚未实现。
 
 ## 每局结束自动评价
 
@@ -218,10 +237,10 @@ Worker 按数据版本去重、保存事实和规则快照，再生成评价；�
 
 Compose 只部署本应用 API、Worker、一次性迁移任务和独立 PostgreSQL，不会复制参考项目的整套基础设施。Nacos 和模型网关通过可配置地址接入；容器内不能用 `127.0.0.1` 访问宿主服务。Docker Desktop 可配置 `host.docker.internal`，Linux 使用受控网络中可达的服务地址。
 
-先准备 `backend/.env`，额外设置随机的 `POSTGRES_PASSWORD`（建议使用十六进制随机值，避免数据库 URL 特殊字符）。在本工程目录执行：
+先准备 `.env`，额外设置随机的 `POSTGRES_PASSWORD`（建议使用十六进制随机值，避免数据库 URL 特殊字符）。在本工程目录执行：
 
 ```sh
-docker compose --env-file backend/.env -f deploy/compose.yaml up --build -d
+docker compose --env-file .env -f deploy/compose.yaml up --build -d
 ```
 
 该命令会新建 `student-game-agent` Compose 项目、容器及 `agent_postgres` 命名卷，数据保存在 Docker 卷中，API 仅绑定 `127.0.0.1:8088`。迁移容器成功后才启动 API 与 Worker，不触碰教育平台数据库和参考项目数据卷。生产发布前由反向代理提供 HTTPS、请求限流和访问策略；不要直接公开内部集成入口。
@@ -229,14 +248,14 @@ docker compose --env-file backend/.env -f deploy/compose.yaml up --build -d
 停止并保留数据库：
 
 ```sh
-docker compose --env-file backend/.env -f deploy/compose.yaml stop
+docker compose --env-file .env -f deploy/compose.yaml stop
 ```
 
 升级前备份数据库。回滚应用镜像保留数据卷；存在新迁移时先验证旧应用兼容性，不默认执行删除数据的降级。本次只生成部署文件，没有执行上述容器命令。
 
 ## 验证
 
-从 `backend/` 执行：
+从本工程目录执行：
 
 ```sh
 make test
@@ -245,4 +264,4 @@ make check
 
 自动化测试使用临时 SQLite、真实 Alembic 迁移、FastAPI ASGI、真实 LangGraph 和模型协议客户端；外部 Nacos/模型/测评接口使用 HTTP 协议替身，不需要也不会使用生产凭据。覆盖普通聊天与按需规则、报告追问、版本快照、越权拒绝、幂等、租约、SSE、训练跳过、数据延迟、来源修订和模型降级等行为。
 
-开发使用 SQLite；Compose 使用 PostgreSQL。真实模型质量、Nacos 部署连通性、外部游戏接口、PostgreSQL 多进程并发、容器构建和完整前端接入需要在对应环境继续验收，不能用当前协议测试替代。
+开发使用 SQLite；Compose 使用 PostgreSQL。真实模型质量、Nacos 部署连通性、外部游戏接口、PostgreSQL 多进程并发、容器构建和真实教育平台前端接入需要在对应环境继续验收，不能用当前协议测试替代。

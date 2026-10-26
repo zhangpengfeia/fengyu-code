@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from student_game_agent.schemas.api import Principal, StrictModel
+from src.schemas.api import Principal, StrictModel
 
 
 class RetrievalQuery(StrictModel):

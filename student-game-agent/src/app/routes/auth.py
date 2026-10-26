@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from student_game_agent.app.dependencies import Services
-from student_game_agent.schemas.api import TokenRequest
-from student_game_agent.security.auth import issue_token, require_service
+from src.app.dependencies import Services
+from src.schemas.api import TokenRequest
+from src.security.auth import issue_token, require_service
 
 router = APIRouter(prefix="/internal/v1", tags=["integration"])
 

@@ -1,17 +1,17 @@
 import hashlib
 
-from student_game_agent.agents.policy import LEGACY_EVALUATION_BOUNDARY
-from student_game_agent.config.game_catalog import Catalog
-from student_game_agent.config.nacos.prompts import NacosPromptRepository
-from student_game_agent.config.settings import Settings
-from student_game_agent.schemas.api import AttemptData, PromptSnapshot
-from student_game_agent.schemas.prompt_context import (
+from src.agents.policy import LEGACY_EVALUATION_BOUNDARY
+from src.config.game_catalog import Catalog
+from src.config.nacos.prompts import NacosPromptRepository
+from src.config.settings import Settings
+from src.schemas.api import AttemptData, PromptSnapshot
+from src.schemas.prompt_context import (
     ArchivedPolicySnapshot,
     ChatScene,
     PromptBundle,
     PromptScene,
 )
-from student_game_agent.utils.errors import AppError
+from src.utils.errors import AppError
 
 
 class PromptResolver:

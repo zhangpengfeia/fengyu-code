@@ -5,7 +5,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from student_game_agent.utils.errors import AppError
+from src.utils.errors import AppError
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,9 @@ def configure_http(app):
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
+        response.headers["X-Data-Mode"] = (
+            "mock" if request.app.state.container.settings.mock_mode else "live"
+        )
         return response
 
     @app.exception_handler(AppError)

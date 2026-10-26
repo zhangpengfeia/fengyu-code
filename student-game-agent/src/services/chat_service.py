@@ -1,11 +1,11 @@
 import asyncio
 
-from student_game_agent.agents.question_agent import QuestionWorkflow
-from student_game_agent.backends.chat_repository import ChatRepository
-from student_game_agent.config.settings import Settings
-from student_game_agent.schemas.api import ChatRequest, ChatResponse, Principal
-from student_game_agent.services.chat_context_service import ChatContextService
-from student_game_agent.utils.errors import AppError
+from src.agents.question_agent import QuestionWorkflow
+from src.backends.chat_repository import ChatRepository
+from src.config.settings import Settings
+from src.schemas.api import ChatRequest, ChatResponse, Principal
+from src.services.chat_context_service import ChatContextService
+from src.utils.errors import AppError
 
 
 class ChatService:
@@ -50,7 +50,7 @@ class ChatService:
                 needs_clarification=context.needs_clarification,
                 answer=state["answer"],
                 citations=state["citations"],
-                model=self.settings.llm_model if state["used_model"] else None,
+                model=self.settings.runtime_model_name if state["used_model"] else None,
             )
             await self.repository.finish_chat(
                 claim, response, [p.model_dump() for p in state["snapshots"]]

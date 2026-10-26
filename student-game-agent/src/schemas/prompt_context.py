@@ -2,7 +2,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
-from student_game_agent.schemas.api import PromptSnapshot
+from src.schemas.api import PromptSnapshot
 
 ChatScene = Literal["GENERAL_CHAT", "GAME_QA", "REPORT_QA"]
 PromptScene = Literal["GENERAL_CHAT", "GAME_QA", "REPORT_QA", "POSTGAME_EVALUATION"]

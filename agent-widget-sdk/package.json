@@ -1,0 +1,9 @@
+{
+  "name": "@fengyu/agent-widget-sdk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./protocol": "./src/protocol.ts" },
+  "scripts": { "build": "esbuild src/index.ts --bundle --format=iife --global-name=FengyuAgentWidget --outfile=dist/agent-widget.js" },
+  "devDependencies": { "esbuild": "0.25.12" }
+}

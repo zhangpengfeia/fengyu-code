@@ -5,7 +5,7 @@ import time
 from conftest import student_headers
 from sqlalchemy import select, update
 
-from student_game_agent.backends.models import EvaluationJob
+from src.backends.models import EvaluationJob
 
 
 async def enqueue(client, revision=1):
@@ -72,7 +72,7 @@ def test_delayed_data_survives_worker_restart_and_retries(runtime):
                     .values(available_at=time.time() - 1)
                 )
             # 新建服务对象模拟进程替换，状态完全来自持久库。
-            from student_game_agent.services.evaluation_service import EvaluationService
+            from src.services.evaluation_service import EvaluationService
 
             replacement = EvaluationService(
                 container.settings,

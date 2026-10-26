@@ -1,8 +1,8 @@
 from typing import TypedDict
 
-from student_game_agent.schemas.api import ChatRequest, Citation, Principal
-from student_game_agent.schemas.chat_context import ChatContext
-from student_game_agent.schemas.prompt_context import PromptBundle
+from src.schemas.api import ChatRequest, Citation, Principal
+from src.schemas.chat_context import ChatContext
+from src.schemas.prompt_context import PromptBundle
 
 
 class ChatState(TypedDict, total=False):

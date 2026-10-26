@@ -9,11 +9,7 @@ import { assetUrl } from "@/shared/utils/assets";
       <div class="login-brand">
         <span><AppIcon name="sparkles" :size="26" /></span>枫语趣学
       </div>
-      <div class="story-copy">
-        <p>在探索中学习，在快乐中成长</p>
-        <h1>让每一次好奇，<br />都成为成长的起点。</h1>
-        <span>在游戏中探索，在探索中发现更棒的自己。</span>
-      </div>
+
       <div class="planet-universe" aria-hidden="true">
         <i class="orbit orbit-one" /><i class="orbit orbit-two" /><img
           class="planet-main"
@@ -26,11 +22,7 @@ import { assetUrl } from "@/shared/utils/assets";
         /><span class="space-star star-one">✦</span
         ><span class="space-star star-two">✧</span
         ><span class="space-star star-three">✦</span>
-        <div class="universe-label">
-          <AppIcon name="star" :size="16" />你的成长，拥有无限可能
-        </div>
       </div>
-      <p class="story-footer">趣味学习 · 思维启蒙 · 智能陪伴</p>
     </section>
     <section class="login-form-side">
       <StudentLoginForm />

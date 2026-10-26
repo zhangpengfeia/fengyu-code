@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from student_game_agent.rag.schemas import RetrievalQuery, RetrievedDocument
+from src.rag.schemas import RetrievalQuery, RetrievedDocument
 
 
 class Retriever(Protocol):

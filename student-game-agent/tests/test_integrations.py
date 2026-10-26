@@ -6,10 +6,10 @@ import pytest
 from conftest import student_headers
 from pydantic import ValidationError
 
-from student_game_agent.config.nacos.prompts import NacosPromptRepository
-from student_game_agent.config.settings import Settings
-from student_game_agent.rag.schemas import RetrievedDocument
-from student_game_agent.utils.errors import AppError
+from src.config.nacos.prompts import NacosPromptRepository
+from src.config.settings import Settings
+from src.rag.schemas import RetrievedDocument
+from src.utils.errors import AppError
 
 
 def test_nacos_login_refresh_version_and_cache(runtime):

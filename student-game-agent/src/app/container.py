@@ -1,19 +1,19 @@
 import httpx
 
-from student_game_agent.agents.question_agent import QuestionWorkflow
-from student_game_agent.backends.chat_repository import ChatRepository
-from student_game_agent.backends.database import Database
-from student_game_agent.backends.evaluation_repository import EvaluationRepository
-from student_game_agent.config.game_catalog import Catalog
-from student_game_agent.config.nacos.prompts import NacosPromptRepository
-from student_game_agent.config.settings import Settings
-from student_game_agent.integrations.attempt_source import HttpAttemptSource
-from student_game_agent.rag.retriever import DisabledRetriever
-from student_game_agent.services.chat_context_service import ChatContextService
-from student_game_agent.services.chat_service import ChatService
-from student_game_agent.services.evaluation_service import EvaluationService
-from student_game_agent.services.prompt_resolver import PromptResolver
-from student_game_agent.utils.model_gateway import OpenAICompatibleGateway
+from src.agents.question_agent import QuestionWorkflow
+from src.backends.chat_repository import ChatRepository
+from src.backends.database import Database
+from src.backends.evaluation_repository import EvaluationRepository
+from src.config.game_catalog import Catalog
+from src.config.nacos.prompts import NacosPromptRepository
+from src.config.settings import Settings
+from src.integrations.attempt_source import HttpAttemptSource
+from src.rag.retriever import DisabledRetriever
+from src.services.chat_context_service import ChatContextService
+from src.services.chat_service import ChatService
+from src.services.evaluation_service import EvaluationService
+from src.services.prompt_resolver import PromptResolver
+from src.utils.model_gateway import OpenAICompatibleGateway
 
 
 class Container:
@@ -30,6 +30,16 @@ class Container:
         )
         self.prompts = NacosPromptRepository(settings, self.http)
         self.model = OpenAICompatibleGateway(settings, self.http)
+        self.attempt_source = HttpAttemptSource(settings, self.http)
+        self.mock = None
+        if settings.mock_mode:
+            from src.mock.providers import MockAttemptSource, MockModelGateway, MockPromptRepository
+            from src.mock.runtime import MockRuntime
+
+            self.mock = MockRuntime(settings)
+            self.prompts = MockPromptRepository(settings, self.catalog, self.mock.data)
+            self.model = MockModelGateway()
+            self.attempt_source = MockAttemptSource(self.database, settings.integration_app_id)
         self.retriever = DisabledRetriever()
         self.prompt_resolver = PromptResolver(settings, self.catalog, self.prompts)
         self.contexts = ChatContextService(self.catalog, self.evaluation_repository)
@@ -39,7 +49,7 @@ class Container:
             settings,
             self.evaluation_repository,
             self.catalog,
-            HttpAttemptSource(settings, self.http),
+            self.attempt_source,
             self.prompts,
             self.model,
             resolver=self.prompt_resolver,

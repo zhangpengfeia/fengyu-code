@@ -1,17 +1,17 @@
 import logging
 import time
 
-from student_game_agent.agents.evaluation_agent import EvaluationAgent
-from student_game_agent.backends.evaluation_repository import EvaluationRepository
-from student_game_agent.backends.models import EvaluationJob
-from student_game_agent.config.game_catalog import Catalog
-from student_game_agent.config.nacos.prompts import NacosPromptRepository
-from student_game_agent.config.settings import Settings
-from student_game_agent.integrations.attempt_source import AttemptSource
-from student_game_agent.schemas.api import AttemptData
-from student_game_agent.services.prompt_resolver import PromptResolver
-from student_game_agent.utils.errors import AppError
-from student_game_agent.utils.model_gateway import ModelGateway
+from src.agents.evaluation_agent import EvaluationAgent
+from src.backends.evaluation_repository import EvaluationRepository
+from src.backends.models import EvaluationJob
+from src.config.game_catalog import Catalog
+from src.config.nacos.prompts import NacosPromptRepository
+from src.config.settings import Settings
+from src.integrations.attempt_source import AttemptSource
+from src.schemas.api import AttemptData
+from src.services.prompt_resolver import PromptResolver
+from src.utils.errors import AppError
+from src.utils.model_gateway import ModelGateway
 
 logger = logging.getLogger(__name__)
 
@@ -89,8 +89,8 @@ class EvaluationService:
             report={
                 "facts": job.facts,
                 "evaluation": text.model_dump(),
-                "generation_mode": "MODEL",
-                "model": self.settings.llm_model,
+                "generation_mode": "MOCK" if self.settings.mock_mode else "MODEL",
+                "model": self.settings.runtime_model_name,
             },
         )
 

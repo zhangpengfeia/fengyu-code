@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from student_game_agent.app.dependencies import Services
-from student_game_agent.backends.database import SCHEMA_REVISION
-from student_game_agent.utils.errors import AppError
+from src.app.dependencies import Services
+from src.backends.database import SCHEMA_REVISION
+from src.utils.errors import AppError
 
 router = APIRouter(prefix="/health", tags=["health"])
 

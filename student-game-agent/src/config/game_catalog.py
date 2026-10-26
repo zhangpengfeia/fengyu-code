@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from student_game_agent.utils.errors import AppError
+from src.utils.errors import AppError
 
 
 class Game(BaseModel):

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from student_game_agent.app.dependencies import Services, Student
+from src.app.dependencies import Services, Student
 
 router = APIRouter(prefix="/api/v1/games", tags=["games"])
 

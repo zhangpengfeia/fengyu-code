@@ -23,6 +23,7 @@ function waitForPreview(signal: AbortSignal) {
 export function useCompanionChat() {
   const auth = useAuthStore();
   const gameCode = ref("");
+  const evaluationId = ref("");
   const messages = ref<ChatMessage[]>([]);
   const sending = ref(false);
   const loadingHistory = ref(false);
@@ -35,7 +36,7 @@ export function useCompanionChat() {
 
   const historyKey = computed(
     () =>
-      `fengyu.companion.${auth.user?.id || "guest"}.${gameCode.value || "general"}`,
+      `fengyu.companion.${auth.user?.id || "guest"}.${gameCode.value || "general"}.${evaluationId.value || "chat"}`,
   );
 
   async function scrollToLatest() {
@@ -46,7 +47,7 @@ export function useCompanionChat() {
     });
   }
 
-  async function changeContext(value: string) {
+  async function changeContext(value: string, reportId = "") {
     contextVersion++;
     const version = contextVersion;
     controller?.abort();
@@ -54,6 +55,7 @@ export function useCompanionChat() {
     loadingHistory.value = false;
     retryPayload.value = undefined;
     gameCode.value = value;
+    evaluationId.value = reportId;
     messages.value = [];
     error.value = "";
     conversationId.value = "";
@@ -110,6 +112,7 @@ export function useCompanionChat() {
         await askCompanion(payload, signal, (answer) => {
           if (version !== contextVersion || signal.aborted) return;
           answered = true;
+          if (answer.game_code && !answer.needs_clarification) gameCode.value = answer.game_code;
           conversationId.value = answer.conversation_id;
           try {
             sessionStorage.setItem(historyKey.value, answer.conversation_id);
@@ -146,6 +149,7 @@ export function useCompanionChat() {
       request_id: crypto.randomUUID(),
       question: text,
       ...(gameCode.value ? { game_code: gameCode.value } : {}),
+      ...(evaluationId.value ? { evaluation_id: evaluationId.value } : {}),
       ...(conversationId.value
         ? { conversation_id: conversationId.value }
         : {}),
@@ -193,6 +197,7 @@ export function useCompanionChat() {
   });
   return {
     gameCode,
+    evaluationId,
     messages,
     sending,
     loadingHistory,

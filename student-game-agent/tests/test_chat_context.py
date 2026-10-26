@@ -6,7 +6,7 @@ from uuid import uuid4
 from conftest import student_headers
 from sqlalchemy import func, select
 
-from student_game_agent.backends.models import EvaluationJob
+from src.backends.models import EvaluationJob
 
 
 def message(question, **values):

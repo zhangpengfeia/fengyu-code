@@ -1,0 +1,17 @@
+{
+  "notice": "仅用于前后端联调，所有账号、成绩与规则均为 mock 示例，不代表真实学生或实际游戏玩法。",
+  "student": {"id": "mock-student-001", "username": "demo", "password": "demo123", "name": "联调同学"},
+  "school": {"id": "11000", "name": "Mock 联调学校"},
+  "class": {"id": "11001", "name": "三年级联调班"},
+  "courses": [
+    {"courseware_id": "mock-math-5", "courseware_name": "第五册 · 思维探险", "description": "通过联调示例完成课程、游戏结束和测评报告闭环。", "subject_code": "MATH", "volume": 5, "game_ids": ["eight-pieces", "arrow-maze", "number-maze", "balloon"], "extension": {"stage": "二阶", "ability": "游戏联调"}},
+    {"courseware_id": "mock-math-4", "courseware_name": "第四册 · 策略探索", "description": "示例课程，用于检查列表、详情及游戏入口接口。", "subject_code": "MATH", "volume": 4, "game_ids": ["stone-transfer", "addition", "fish", "four-seas"], "extension": {"stage": "二阶", "ability": "策略联调"}}
+  ],
+  "attempt_defaults": {"game_rule_version": "1.0.0", "volume_no": 5, "mode": "ASSESSMENT", "difficulty": "NOVICE", "duration_ms": 83000, "actual_steps": 36, "optimal_steps": 28, "badge": "BRONZE", "passed": true},
+  "seed_reports": [
+    {"source_attempt_id": "mock-seed-eight-pieces", "game_code": "eight-pieces", "badge": "BRONZE", "actual_steps": 36},
+    {"source_attempt_id": "mock-seed-arrow-maze", "game_code": "arrow-maze", "badge": "SILVER", "actual_steps": 30}
+  ],
+  "rule_text": "这是联调占位规则，不是实际游戏规则：先观察示例目标，再根据页面提示操作；示例结束后由服务端固定数据生成评价。实际玩法将在确认后配置到 Nacos。",
+  "ranking": [{"user_id": "mock-peer-001", "nick_name": "示例星星", "total_score": 286}, {"user_id": "mock-student-001", "nick_name": "联调同学", "total_score": 246}, {"user_id": "mock-peer-002", "nick_name": "示例小鹿", "total_score": 224}]
+}

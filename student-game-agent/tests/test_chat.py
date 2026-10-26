@@ -5,7 +5,7 @@ from uuid import uuid4
 from conftest import student_headers
 from sqlalchemy import select, update
 
-from student_game_agent.backends.models import ChatRun, Conversation
+from src.backends.models import ChatRun, Conversation
 
 
 def question(**values):

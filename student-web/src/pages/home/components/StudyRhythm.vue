@@ -19,12 +19,7 @@ const week = Array.from({ length: 7 }, (_, index) => {
     <div class="rhythm-title">
       <span class="rhythm-icon"><AppIcon name="calendar" :size="19" /></span>
       <div>
-        <h3>学习，慢慢成为习惯</h3>
-        <p>
-          {{
-            isPreview ? "每一点积累，都在悄悄发光" : "带着好奇，开始今天的探索"
-          }}
-        </p>
+        <h3>学习日历</h3>
       </div>
     </div>
     <div class="week-row" aria-label="最近七天">

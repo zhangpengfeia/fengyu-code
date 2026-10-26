@@ -4,6 +4,10 @@ import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
+  const mock = mode === "mock";
+  const agentTarget = mock
+    ? env.MOCK_AGENT_API_TARGET || "http://127.0.0.1:8088"
+    : env.AGENT_API_TARGET || "http://127.0.0.1:8088";
   return {
     plugins: [vue()],
     base: env.VITE_BASE_PATH || "/",
@@ -15,12 +19,12 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         "/education-api": {
-          target: env.EDUCATION_API_TARGET || "http://127.0.0.1:8081",
+          target: mock ? agentTarget : env.EDUCATION_API_TARGET || "http://127.0.0.1:8081",
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/education-api/, ""),
+          rewrite: (path) => path.replace(/^\/education-api/, mock ? "/dev/education" : ""),
         },
         "/agent-api": {
-          target: env.AGENT_API_TARGET || "http://127.0.0.1:8088",
+          target: agentTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/agent-api/, ""),
         },

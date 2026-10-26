@@ -6,8 +6,8 @@ from conftest import student_headers
 from sqlalchemy import select, update
 from test_chat_context import message, seed_report
 
-from student_game_agent.backends.models import EvaluationJob
-from student_game_agent.schemas.api import AttemptData
+from src.backends.models import EvaluationJob
+from src.schemas.api import AttemptData
 
 
 def test_rule_question_with_first_person_does_not_require_a_report(runtime):

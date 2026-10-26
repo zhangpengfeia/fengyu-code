@@ -3,8 +3,8 @@ import asyncio
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from student_game_agent.backends.models import Base
-from student_game_agent.config.settings import Settings
+from src.backends.models import Base
+from src.config.settings import Settings
 
 settings = context.config.attributes.get("settings") or Settings()
 

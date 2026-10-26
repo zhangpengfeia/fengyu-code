@@ -4,11 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 
-from student_game_agent.app.dependencies import Services, Student
-from student_game_agent.backends.models import EvaluationJob
-from student_game_agent.schemas.api import AttemptEvent, JobResponse
-from student_game_agent.security.auth import require_service
-from student_game_agent.utils.errors import AppError
+from src.app.dependencies import Services, Student
+from src.backends.models import EvaluationJob
+from src.schemas.api import AttemptEvent, JobResponse
+from src.security.auth import require_service
+from src.utils.errors import AppError
 
 router = APIRouter(tags=["evaluation"])
 

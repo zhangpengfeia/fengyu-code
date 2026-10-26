@@ -5,8 +5,8 @@ import httpx
 from langchain_core.messages import BaseMessage
 from langchain_openai import ChatOpenAI
 
-from student_game_agent.config.settings import Settings
-from student_game_agent.utils.errors import AppError
+from src.config.settings import Settings
+from src.utils.errors import AppError
 
 
 class ModelGateway(Protocol):

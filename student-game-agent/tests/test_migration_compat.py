@@ -11,10 +11,10 @@ from alembic.config import Config
 from conftest import Upstream, student_headers
 from sqlalchemy.ext.asyncio import create_async_engine
 
-from student_game_agent.app.container import Container
-from student_game_agent.app.main import create_app
-from student_game_agent.backends.chat_repository import digest
-from student_game_agent.config.settings import Settings
+from src.app.container import Container
+from src.app.main import create_app
+from src.backends.chat_repository import digest
+from src.config.settings import Settings
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 

@@ -3,11 +3,11 @@ import json
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import ValidationError
 
-from student_game_agent.agents.policy import BOUNDARY
-from student_game_agent.schemas.api import AttemptData, EvaluationText
-from student_game_agent.schemas.prompt_context import PromptBundle
-from student_game_agent.utils.errors import AppError
-from student_game_agent.utils.model_gateway import ModelGateway
+from src.agents.policy import BOUNDARY
+from src.schemas.api import AttemptData, EvaluationText
+from src.schemas.prompt_context import PromptBundle
+from src.utils.errors import AppError
+from src.utils.model_gateway import ModelGateway
 
 
 class EvaluationAgent:

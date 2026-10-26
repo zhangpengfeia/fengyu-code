@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/features/auth/store";
-import { isPreview } from "@/shared/config";
+import { isPreview, isMock } from "@/shared/config";
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -71,6 +71,12 @@ export const router = createRouter({
           component: () => import("@/pages/companion/index.vue"),
           meta: { title: "智能学伴" },
         },
+        ...(isMock ? [{
+          path: "mock-game/:gameCode",
+          name: "mock-game",
+          component: () => import("@/pages/mock-game/index.vue"),
+          meta: { title: "游戏结束联调" },
+        }] : []),
       ],
     },
     {
