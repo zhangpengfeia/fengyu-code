@@ -2,7 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 
 from src.schemas.api import PromptSnapshot
 from src.utils.errors import AppError
@@ -84,7 +84,11 @@ class DemoModelGateway:
     def _context(messages, marker):
         # Workflow-owned context is inserted immediately after the system message;
         # never interpret the current user question as an injected context object.
-        for message in reversed(messages[1:-1][:2]):
+        for index, message in reversed(list(enumerate(messages[1:-1][:2], start=1))):
+            # Stored user turns are followed by their assistant reply. They are
+            # history, even if their text resembles a workflow context marker.
+            if isinstance(messages[index + 1], AIMessage):
+                continue
             if isinstance(message.content, str) and message.content.startswith(marker):
                 start = message.content.find("{")
                 if start >= 0:
