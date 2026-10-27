@@ -36,6 +36,8 @@ base = pathlib.Path(os.environ['TEST_BASE'])
 args = sys.argv[1:]
 with (base / 'calls').open('a') as stream:
     stream.write(' '.join(args) + '\\n')
+if args[:2] == ['volume', 'inspect']:
+    sys.exit(0 if os.environ.get('EXISTING_DB') else 1)
 if '-f' not in args: sys.exit(0)
 directory = pathlib.Path(args[args.index('-f') + 1]).parent
 values = dict(line.split('=', 1) for line in (directory / '.env').read_text().splitlines())
@@ -132,10 +134,32 @@ if '__release.txt' in args[-1]:
         self.assertEqual((self.base / "current").resolve(), old)
         self.assertEqual((self.base / "previous").resolve(), directory)
 
-    def test_missing_credentials_fails_before_container_changes(self):
-        (self.base / ".pipeline/agent.env").unlink()
+    def test_first_install_generates_unique_private_credentials(self):
+        credentials = self.base / ".pipeline/agent.env"
+        credentials.unlink()
         tag, directory = self.release(1)
-        self.assertNotEqual(self.run_release(tag, directory).returncode, 0)
+        result = self.run_release(tag, directory)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        original = credentials.read_text()
+        values = dict(line.split("=", 1) for line in original.splitlines() if "=" in line)
+        self.assertEqual(len(values), 3)
+        self.assertEqual(len(set(values.values())), 3)
+        self.assertTrue(all(len(value) == 64 for value in values.values()))
+        self.assertEqual(credentials.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(self.run_release(tag, directory).returncode, 0)
+        self.assertEqual(credentials.read_text(), original)
+        self.assertTrue(
+            all(value not in result.stdout + result.stderr for value in values.values())
+        )
+
+    def test_existing_database_without_credentials_is_never_reset(self):
+        credentials = self.base / ".pipeline/agent.env"
+        credentials.unlink()
+        tag, directory = self.release(1)
+        result = self.run_release(tag, directory, EXISTING_DB="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(credentials.exists())
+        self.assertIn("restore agent.env from backup", result.stderr)
         self.assertNotIn(" up ", (self.base / "calls").read_text())
 
 

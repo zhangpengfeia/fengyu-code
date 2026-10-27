@@ -8,7 +8,7 @@
 
 1. 沿用现有 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_SSH_KEY`、`DEPLOY_KNOWN_HOSTS` secrets，以及 `DEPLOY_PORT`、`DEPLOY_NETWORK` variables。SSH 主机密钥必须预先核验。
 2. 先发布现有 education 网关：`education-admin/deploy/nginx.admin.conf` 新增此前缀，代理到独立容器 `fengyucode-student-agent-web:8080`。它采用 Docker 动态解析，不要求 Agent 先启动。两个独立 workflow 若同时运行，Agent 的首次公开路径校验可能早于网关更新；网关更新后重跑 Agent 发布。
-3. 服务器安装 Docker Compose、curl、flock、python3；已有外部网络默认 `crm-ai_default`。创建 `/project/fengyucode-student-agent/.pipeline/agent.env`，按 `release.env.example` 填写真实配置，权限 `600`。数据库口令使用单独生成的 32 字节以上十六进制值；服务集成密钥、JWT 签名密钥分别生成，至少 32 字符。密钥只保存在服务器，不能提交仓库。
+3. 服务器安装 Docker Compose、curl、flock、python3；已有外部网络默认 `crm-ai_default`。首次安装且数据库卷尚不存在时，脚本会在 `/project/fengyucode-student-agent/.pipeline/agent.env` 自动生成三个独立随机密钥，权限 `600`，不会输出到日志。已有文件绝不覆盖；已有数据库但配置丢失时拒绝生成新口令，须恢复备份。按 `release.env.example` 补齐真实服务配置并备份该文件。数据库口令使用单独生成的 32 字节以上十六进制值；服务集成密钥、JWT 签名密钥分别生成，至少 32 字符。密钥只保存在服务器，不能提交仓库。
 4. 配置真实 Nacos 提示词、模型网关/模型名与成绩源服务。容器的就绪检查只证明数据库可用，不能代替真实聊天/报告验收。
 5. 教育平台尚需实现学生身份换票桥接：后端调用 Agent 的 `/internal/v1/tokens`，对浏览器返回短期令牌。将这个教育 API 路径配置为 GitHub variable `AGENT_TOKEN_ENDPOINT` 后重建学生镜像。留空时学生端可加载，学伴/报告会提示尚未配置；不会伪造登录成功。
 

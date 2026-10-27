@@ -6,20 +6,41 @@ mode=${1:-}
 base=${2:-/project/fengyucode-student-agent}
 [[ "$mode" == deploy || "$mode" == rollback ]] || exit 2
 [[ "$base" =~ ^/[a-zA-Z0-9_/-]+$ && "$base" != *..* && "$base" != / ]] || exit 2
-for command in docker flock curl python3; do command -v "$command" >/dev/null; done
-docker compose version >/dev/null
+fail() { printf '::error::%s\n' "$1" >&2; exit 1; }
+for command in docker flock curl python3; do
+  command -v "$command" >/dev/null || fail "Missing server dependency: $command"
+done
+docker compose version >/dev/null || fail 'Docker Compose is unavailable on the server'
+docker info >/dev/null || fail 'Docker daemon is unavailable on the server'
 mkdir -p "$base/.pipeline"
 exec 9>"$base/.pipeline/deploy.lock"
 flock -w 600 9
 credentials="$base/.pipeline/agent.env"
-[[ -s "$credentials" && ! -L "$credentials" ]] || {
-  echo 'Prepare the server-only .pipeline/agent.env from release.env.example before deployment.' >&2
-  exit 1
-}
+[[ ! -L "$credentials" ]] || fail 'Agent credentials must not be a symbolic link'
+if [[ ! -e "$credentials" && "$mode" == deploy ]]; then
+  if docker volume inspect fengyucode-student-agent_agent_postgres >/dev/null 2>&1; then
+    fail 'Agent credentials are missing for an existing database; restore agent.env from backup'
+  fi
+  # First installation only. Never replace an existing credential or rotate a DB password.
+  python3 - "$credentials" <<'PYTHON'
+import os
+import secrets
+import sys
+path = sys.argv[1]
+values = {name: secrets.token_hex(32) for name in (
+    "POSTGRES_PASSWORD", "AGENT_SERVICE_API_KEY", "AGENT_JWT_SECRET"
+)}
+with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "w") as stream:
+    stream.write("# Generated on first deployment; keep this file backed up on the server.\n")
+    stream.writelines(f"{name}={value}\n" for name, value in values.items())
+PYTHON
+  echo '::notice::Initialized server-only Agent credentials; real model/prompt services and the education token bridge still need configuration.'
+fi
+[[ -s "$credentials" ]] || fail 'Agent credentials are missing or empty; prepare .pipeline/agent.env'
 chmod 600 "$credentials"
 # Hex database passwords do not need URL escaping in the SQLAlchemy DSN.
 postgres_password=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$credentials")
-[[ "$postgres_password" =~ ^[a-fA-F0-9]{64,}$ ]] || { echo 'POSTGRES_PASSWORD must be a separately generated hex secret (32+ bytes).' >&2; exit 1; }
+[[ "$postgres_password" =~ ^[a-fA-F0-9]{64,}$ ]] || { fail 'POSTGRES_PASSWORD must be a separately generated hex secret (32+ bytes).'; }
 unset postgres_password
 compose() {
   local directory=$1
@@ -77,9 +98,9 @@ else
   [[ "$directory" == "$base"/releases/*/deploy ]] || exit 1
 fi
 [[ -f "$directory/compose.yaml" && -f "$directory/.env" ]] || exit 1
-compose "$directory" config --quiet
+compose "$directory" config --quiet || fail 'Invalid production Compose configuration'
 # Pull and migrations complete before the API/web containers switch.
-compose "$directory" --profile tools pull
+compose "$directory" --profile tools pull || fail 'Unable to pull Agent images; check GHCR read access on the server'
 changed=0
 recover() {
   local code=$?
