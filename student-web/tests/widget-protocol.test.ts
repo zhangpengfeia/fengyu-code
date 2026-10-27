@@ -94,3 +94,25 @@ test("widget address is pinned to a web origin and excludes executable URLs", ()
     ),
   );
 });
+
+test("live context carries catalog metadata without trusting browser identity or grades", async () => {
+  const { isLiveGameContext, isGameContext } =
+    await import("@fengyu/agent-widget-sdk/protocol");
+  const mock = context();
+  const live = {
+    mode: "live",
+    requestId: randomUUID(),
+    game: { ...mock.game },
+  };
+  assert.equal(isLiveGameContext(live), true);
+  assert.equal(isGameContext(live), true);
+  const { code, ...unmapped } = live.game;
+  assert.equal(isLiveGameContext({ ...live, game: unmapped }), true);
+  assert.equal(isLiveGameContext({ ...live, student: mock.student }), false);
+  assert.equal(isLiveGameContext({ ...live, result: mock.result }), false);
+  assert.equal(
+    isLiveGameContext({ ...live, game: { ...live.game, code: "../invalid" } }),
+    false,
+  );
+  assert.equal(isLiveGameContext({ ...live, requestId: "invalid" }), false);
+});

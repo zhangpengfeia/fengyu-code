@@ -36,6 +36,11 @@ base = pathlib.Path(os.environ['TEST_BASE'])
 args = sys.argv[1:]
 with (base / 'calls').open('a') as stream:
     stream.write(' '.join(args) + '\\n')
+if args[:2] == ['network', 'inspect'] and 'fengyucode-agent-bridge' in args:
+    if os.environ.get('MISSING_AGENT_BRIDGE') and not (base / 'bridge-created').exists():
+        sys.exit(1)
+    if '--format' in args: print(os.environ.get('AGENT_BRIDGE_METADATA', 'true bridge'))
+if args[:2] == ['network', 'create']: (base / 'bridge-created').touch()
 if args[:2] == ['volume', 'inspect']:
     sys.exit(0 if os.environ.get('EXISTING_DB') else 1)
 if '-f' not in args: sys.exit(0)
@@ -101,6 +106,23 @@ if '__release.txt' in args[-1]:
             calls.index("180 agent-api worker student-web"),
         )
         self.assertNotIn(" down", calls)
+
+    def test_private_agent_bridge_is_created_on_first_deploy(self):
+        tag, directory = self.release(1)
+        result = self.run_release(tag, directory, MISSING_AGENT_BRIDGE="1")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "network create --driver bridge --internal fengyucode-agent-bridge",
+            (self.base / "calls").read_text(),
+        )
+
+    def test_external_or_wrong_driver_agent_network_is_rejected(self):
+        for number, metadata in enumerate(("false bridge", "true overlay"), start=1):
+            tag, directory = self.release(number)
+            result = self.run_release(tag, directory, AGENT_BRIDGE_METADATA=metadata)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("must be an internal Docker bridge", result.stderr)
+            self.assertNotIn(" up ", (self.base / "calls").read_text())
 
     def test_failed_switch_restores_old_images_and_current(self):
         first, old = self.release(1)
@@ -172,7 +194,31 @@ class ConfigurationTests(unittest.TestCase):
             self.assertEqual(services[name]["environment"]["AGENT_MOCK_MODE"], "false")
             self.assertNotIn("ports", services[name])
         self.assertNotIn("ports", services["postgres"])
+        bridge = config["networks"]["agent_bridge"]
+        self.assertTrue(bridge["external"])
+        self.assertEqual(bridge["name"], "fengyucode-agent-bridge")
+        self.assertEqual(
+            services["agent-api"]["networks"]["agent_bridge"]["aliases"],
+            ["fengyucode-student-agent-api"],
+        )
+        for name in ("worker", "migrate", "postgres", "student-web"):
+            self.assertNotIn("agent_bridge", services[name]["networks"])
         self.assertTrue(services["student-web"]["ports"][0].startswith("127.0.0.1:"))
+        education = yaml.safe_load(
+            (ROOT / "education-admin/deploy/compose.release.yaml").read_text()
+        )
+        self.assertEqual(
+            education["services"]["education-api"]["networks"], ["backend", "agent_bridge"]
+        )
+        self.assertNotIn("agent_bridge", education["services"]["fengyucode-web"]["networks"])
+        self.assertEqual(
+            education["services"]["education-api"]["environment"]["EDU_AGENT_BASE_URL"],
+            "http://fengyucode-student-agent-api:8088",
+        )
+        self.assertIn(
+            "${EDU_AGENT_CREDENTIALS_FILE:-/dev/null}",
+            education["services"]["education-api"]["env_file"],
+        )
         nginx = (ROOT / "student-web/deploy/nginx.agent.conf").read_text()
         self.assertIn("(internal|dev)", nginx)
         self.assertIn("/student/index.html", nginx)

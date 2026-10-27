@@ -30,6 +30,10 @@ services:
     profiles: [tools]
   agent-api:
     <<: *agent
+    networks:
+      backend:
+      agent_bridge:
+        aliases: [fengyucode-student-agent-api]
     depends_on:
       postgres: {condition: service_healthy}
     healthcheck:
@@ -59,6 +63,9 @@ services:
       retries: 15
 networks:
   backend:
+  agent_bridge:
+    external: true
+    name: fengyucode-agent-bridge
   gateway:
     external: true
     name: ${GATEWAY_NETWORK:-crm-ai_default}

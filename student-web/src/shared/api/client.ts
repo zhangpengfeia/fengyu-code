@@ -1,6 +1,10 @@
 import axios, { type AxiosRequestConfig } from "axios";
 import { config } from "@/shared/config";
-import { educationSession, agentSession } from "./session";
+import {
+  educationSession,
+  agentSession,
+  getAgentTokenProvider,
+} from "./session";
 
 export class ApiError extends Error {
   constructor(
@@ -83,6 +87,8 @@ let pendingToken: { owner: string; promise: Promise<string> } | undefined;
 export async function ensureAgentToken(): Promise<string> {
   const token = agentSession.getToken();
   if (token) return token;
+  const provider = getAgentTokenProvider();
+  if (provider) return provider();
   if (!config.agentTokenEndpoint)
     throw new ApiError("智能学伴暂未开通，请稍后再试或联系老师。");
   const owner = educationSession.getToken();
@@ -93,7 +99,7 @@ export async function ensureAgentToken(): Promise<string> {
       access_token: string;
       expires_in: number;
     }>({ url: config.agentTokenEndpoint, method: "POST" });
-    if (educationSession.getToken() !== owner)
+    if (educationSession.getToken() !== owner || getAgentTokenProvider())
       throw new ApiError("登录状态已变化，请重新打开学伴。", 401);
     if (!result.access_token)
       throw new ApiError("智能学伴暂时无法登录，请稍后重试。");

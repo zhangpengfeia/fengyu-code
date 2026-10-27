@@ -3,24 +3,35 @@ import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { createAgentWidget } from '@fengyu/agent-widget-sdk'
 import { usePlanetAgentSelection } from './context'
 import { createPlanetMockContext } from './mock'
+import { createPlanetLiveContext } from './live'
 const container = ref<HTMLElement>()
 const selection = usePlanetAgentSelection()
-const enabled = import.meta.env.DEV && import.meta.env.MODE === 'mock'
+const mock = import.meta.env.DEV && import.meta.env.MODE === 'mock'
+const enabled = mock || import.meta.env.PROD
+function currentContext() {
+  return mock
+    ? createPlanetMockContext(selection.value, round)
+    : createPlanetLiveContext(selection.value)
+}
 let widget: ReturnType<typeof createAgentWidget> | undefined
 let round = 0
 function publish() {
-  widget?.updateContext(createPlanetMockContext(selection.value, round))
+  widget?.updateContext(currentContext())
 }
 onMounted(() => {
   if (!enabled || !container.value) return
   widget = createAgentWidget({
     container: container.value,
-    url: import.meta.env.VITE_AGENT_WIDGET_URL || 'http://127.0.0.1:5176/widget',
-    context: createPlanetMockContext(selection.value),
-    onMockRound: () => {
-      round++
-      publish()
-    },
+    url:
+      import.meta.env.VITE_AGENT_WIDGET_URL ||
+      (mock ? 'http://127.0.0.1:5176/widget' : '/student/widget'),
+    context: currentContext(),
+    onMockRound: mock
+      ? () => {
+          round++
+          publish()
+        }
+      : undefined,
   })
 })
 watch(selection, () => {

@@ -3,15 +3,16 @@ import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import {
   WIDGET_PROTOCOL,
   isMockGameContext,
+  isLiveGameContext,
   isWidgetMessage,
-  type MockGameContext,
+  type GameContext,
   type WidgetMessage,
 } from "@fengyu/agent-widget-sdk/protocol";
 import { isMock } from "@/shared/config";
-import { agentSession } from "@/shared/api/session";
+import { agentSession, registerAgentTokenProvider } from "@/shared/api/session";
 import { useAuthStore } from "@/features/auth/store";
 import ChatPanel from "@/features/companion/components/ChatPanel.vue";
-import { openMockSession, type WidgetSession } from "./api";
+import { openLiveSession, openMockSession, type WidgetSession } from "./api";
 const params = new URLSearchParams(window.location.search);
 const parentOrigin = params.get("parent_origin") || "";
 const channelId = params.get("channel_id") || "";
@@ -21,18 +22,21 @@ const allowedOrigins = (
   .split(",")
   .map((value: string) => value.trim());
 const permitted =
-  isMock &&
   window.parent !== window &&
   allowedOrigins.includes(parentOrigin) &&
-  /^[0-9a-f-]{36}$/i.test(channelId);
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    channelId,
+  );
 const auth = useAuthStore();
-const context = ref<MockGameContext>();
+const context = ref<GameContext>();
 const session = ref<WidgetSession>();
 const busy = ref(false);
 const error = ref("");
 const scene = ref<"game" | "report">("game");
 const reportStatus = ref("");
 let controller: AbortController | undefined;
+let refreshController: AbortController | undefined;
+let unregisterProvider: (() => void) | undefined;
 let revision = 0;
 let renewal: ReturnType<typeof setTimeout> | undefined;
 const badges: Record<string, string> = {
@@ -52,19 +56,31 @@ function post(message: Omit<WidgetMessage, "protocol" | "channelId">) {
       parentOrigin,
     );
 }
-async function connect(value: MockGameContext) {
+async function connect(value: GameContext, renew = false) {
+  const previous = renew ? session.value : undefined;
   const current = ++revision;
   controller?.abort();
+  refreshController?.abort();
   clearTimeout(renewal);
-  controller = new AbortController();
+  const request = new AbortController();
+  controller = request;
   context.value = value;
   session.value = undefined;
   agentSession.clear();
   error.value = "";
   busy.value = true;
   try {
-    const result = await openMockSession(value, controller.signal);
+    const result =
+      value.mode === "mock"
+        ? await openMockSession(value, request.signal)
+        : await openLiveSession(request.signal);
     if (current !== revision) return;
+    if (
+      previous &&
+      (result.student.id !== previous.student.id ||
+        result.student.school_id !== previous.student.school_id)
+    )
+      throw new Error("游戏登录身份已变化，请重新连接学伴。");
     agentSession.setToken(result.access_token, result.expires_in);
     auth.user = {
       id: result.student.id,
@@ -74,9 +90,11 @@ async function connect(value: MockGameContext) {
     };
     session.value = result;
     scene.value = "game";
-    reportStatus.value = result.evaluation_id
-      ? "本局示例评价正在生成，可切换到报告问答。"
-      : "训练模式仅提供规则问答，不生成测评报告。";
+    reportStatus.value = !result.mock
+      ? "尚未接收本局成绩，暂不生成测评报告。"
+      : result.evaluation_id
+        ? "本局示例评价正在生成，可切换到报告问答。"
+        : "训练模式仅提供规则问答，不生成测评报告。";
     post({
       type: "accepted",
       requestId: value.requestId,
@@ -85,12 +103,12 @@ async function connect(value: MockGameContext) {
     // Renew using the same round ID; the backend never creates a second report.
     renewal = setTimeout(
       () => {
-        if (context.value) void connect(context.value);
+        if (context.value) void connect(context.value, true);
       },
       Math.max(30, result.expires_in - 60) * 1000,
     );
   } catch (cause) {
-    if (current !== revision || controller.signal.aborted) return;
+    if (current !== revision || request.signal.aborted) return;
     error.value = cause instanceof Error ? cause.message : "学伴连接失败。";
     post({ type: "error", message: error.value });
   } finally {
@@ -106,29 +124,75 @@ function receive(event: MessageEvent) {
   )
     return;
   if (event.data.type !== "context") return;
-  if (!isMockGameContext(event.data.context)) {
+  const incoming = event.data.context;
+  const valid = isMock
+    ? isMockGameContext(incoming)
+    : isLiveGameContext(incoming);
+  if (!valid || !incoming) {
     error.value = "星球传入的数据格式不正确。";
     post({ type: "error", message: error.value });
     return;
   }
-  void connect(event.data.context);
+  if (
+    session.value &&
+    !error.value &&
+    agentSession.getToken() &&
+    JSON.stringify(context.value) === JSON.stringify(incoming)
+  ) {
+    post({
+      type: "accepted",
+      requestId: incoming.requestId,
+      evaluationId: session.value.evaluation_id || undefined,
+    });
+    return;
+  }
+  void connect(incoming);
 }
 onMounted(() => {
   if (!permitted) {
-    error.value = isMock
-      ? "请从已配置的星球页面打开学伴。"
-      : "模拟嵌入入口仅在本地模拟模式下开放。";
+    error.value = "请从已授权的星球页面打开学伴。";
     return;
   }
+  unregisterProvider = registerAgentTokenProvider(async () => {
+    const current = revision;
+    const selected = context.value;
+    const previous = session.value;
+    if (!selected || !previous)
+      throw new Error("学伴尚未连接，请重新打开窗口。");
+    const request = new AbortController();
+    refreshController = request;
+    const result =
+      selected.mode === "mock"
+        ? await openMockSession(selected, request.signal)
+        : await openLiveSession(request.signal);
+    if (
+      current !== revision ||
+      request.signal.aborted ||
+      session.value !== previous
+    )
+      throw new Error("星球上下文已变化，请重新连接学伴。");
+    if (
+      result.student.id !== previous.student.id ||
+      result.student.school_id !== previous.student.school_id
+    ) {
+      clearTimeout(renewal);
+      session.value = undefined;
+      error.value = "游戏登录身份已变化，请重新连接学伴。";
+      post({ type: "error", message: error.value });
+      throw new Error(error.value);
+    }
+    return result;
+  });
   window.addEventListener("message", receive);
   post({ type: "ready" });
 });
 onBeforeUnmount(() => {
   revision++;
+  unregisterProvider?.();
   controller?.abort();
+  refreshController?.abort();
   clearTimeout(renewal);
   window.removeEventListener("message", receive);
-  agentSession.clear();
 });
 </script>
 <template>
@@ -144,7 +208,10 @@ onBeforeUnmount(() => {
     </div>
     <template v-else-if="session && context">
       <details class="context-receipt">
-        <summary>星球已传入模拟数据 · {{ context.game.name }}</summary>
+        <summary>
+          {{ session.mock ? "星球已传入模拟数据" : "当前游戏" }} ·
+          {{ context.game.name }}
+        </summary>
         <dl>
           <div>
             <dt>学生</dt>
@@ -152,29 +219,41 @@ onBeforeUnmount(() => {
           </div>
           <div>
             <dt>册次</dt>
-            <dd>第{{ session.facts.volume_no }}册</dd>
+            <dd>第{{ context.game.volume }}册</dd>
           </div>
-          <div>
-            <dt>本局用时</dt>
-            <dd>{{ Math.round(session.facts.duration_ms / 1000) }}秒</dd>
-          </div>
-          <div>
-            <dt>操作次数</dt>
-            <dd>{{ session.facts.actual_steps }}步</dd>
-          </div>
-          <div>
-            <dt>徽章</dt>
-            <dd>{{ badges[session.facts.badge] || "暂无徽章" }}</dd>
+          <template v-if="session.mock">
+            <div>
+              <dt>本局用时</dt>
+              <dd>{{ Math.round(session.facts.duration_ms / 1000) }}秒</dd>
+            </div>
+            <div>
+              <dt>操作次数</dt>
+              <dd>{{ session.facts.actual_steps }}步</dd>
+            </div>
+            <div>
+              <dt>徽章</dt>
+              <dd>{{ badges[session.facts.badge] || "暂无徽章" }}</dd>
+            </div>
+          </template>
+          <div v-else>
+            <dt>模式</dt>
+            <dd>{{ context.game.mode === "ASSESSMENT" ? "测评" : "训练" }}</dd>
           </div>
         </dl>
       </details>
+      <p v-if="!session.mock" class="live-note">
+        <span v-if="!context.game.code"
+          >当前游戏尚未绑定规则，可先进行学习问答。
+        </span>
+        {{ reportStatus }}
+      </p>
       <div class="scene-tabs" aria-label="问答场景">
         <button
           :class="{ active: scene === 'game' }"
           :aria-pressed="scene === 'game'"
           @click="scene = 'game'"
         >
-          游戏规则</button
+          {{ context.game.code ? "游戏规则" : "学习问答" }}</button
         ><button
           :class="{ active: scene === 'report' }"
           :disabled="!session.evaluation_id"
@@ -258,7 +337,8 @@ dd {
   color: var(--primary);
   background: #edf2ff;
 }
-.report-note {
+.report-note,
+.live-note {
   margin: 0;
   padding: 6px 14px;
   background: #fff9ec;

@@ -24,3 +24,11 @@ uv run --locked python scripts/dev_mock.py --with-planet --api-port 8091 --web-p
 - Agent `/dev/mock/widget-session`：接收宿主事实，签发当前模拟学生令牌；测评进入实际报告工作流，重复请求幂等。
 
 消息双方校验 `origin`、`source`、随机 `channelId` 与协议版本；iframe URL 不携带令牌。学伴端通过 `VITE_WIDGET_PARENT_ORIGINS` 明确列出允许的宿主源，逗号分隔。生产构建不包含模拟挂件入口，正常星球票据鉴权保留。这里的模拟 bootstrap 不能用于正式接入；正式版须由教育后端校验学生身份后换取短期 Agent 令牌，不能信任浏览器传入的学生 ID 或成绩。
+
+## 正式线上挂件
+
+生产星球右下角显示“智能学伴”，加载同域 `/student/widget`。宿主发送 `mode: live` 的册次、目录名称与游戏模式，不发送学生身份或成绩。iframe 通过 `/play/planet/agent-session` 的游戏 Cookie 获取服务器确认的学生和短期令牌；未登录、无资源权限、会话过期、非学生账号均按现有权限拒绝。令牌只驻留内存，过期后仍使用同一个游戏会话刷新。
+
+真实目录可在 `BookGame.agentCode` 中绑定经过核对的 Agent 游戏代码。尚未绑定的“抢石子”等目录不会套用本地八子归位等模拟槽位映射，先使用通用学习问答。正式模式不接收浏览器模拟成绩，不创建虚构测评，也不开放模拟按钮。
+
+Java 与 Agent 仅通过专用私有 Docker 网络连接，集成密钥仅配置于服务器。正式模型和 Nacos 提示词仍需配置；缺失时聊天明确提示服务未就绪。部署细节见 `education-admin/docs/AGENT_WIDGET_DEPLOYMENT.md`。

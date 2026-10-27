@@ -12,6 +12,20 @@ base_dir=${2:-/project/fengyucode}
 [[ "$base_dir" =~ ^/[a-zA-Z0-9_/-]+$ && "$base_dir" != *..* && "$base_dir" != / ]] || exit 2
 for tool in flock curl docker python3; do command -v "$tool" >/dev/null; done
 docker compose version >/dev/null
+ensure_agent_bridge() {
+  local bridge=fengyucode-agent-bridge metadata
+  if ! docker network inspect "$bridge" >/dev/null 2>&1; then
+    # Another release may create it concurrently; validate the resulting network below.
+    docker network create --driver bridge --internal "$bridge" >/dev/null 2>&1 || \
+      docker network inspect "$bridge" >/dev/null
+  fi
+  metadata=$(docker network inspect --format '{{.Internal}} {{.Driver}}' "$bridge")
+  [[ "$metadata" == 'true bridge' ]] || {
+    echo '::error::fengyucode-agent-bridge must be an internal Docker bridge network' >&2
+    exit 1
+  }
+}
+ensure_agent_bridge
 mkdir -p "$base_dir/.pipeline"
 exec 9>"$base_dir/.pipeline/deploy.lock"
 flock -w 600 9
@@ -100,23 +114,79 @@ if [[ "$mode" == deploy ]]; then
   [[ -f "$new_dir/education.release" ]] || { echo "Missing education release marker" >&2; exit 2; }
   [[ "$new_dir" != "$old_dir" ]] || { echo 'Release already active'; exit 0; }
   docker network inspect "$network" >/dev/null
-  # Generate once, never print credentials to Actions logs or replace existing values.
+  # The public test deployment uses the agreed admin login; keep other credentials stable.
   credentials="$base_dir/.pipeline/education.env"
   if [[ ! -f "$credentials" ]]; then
     python3 - "$credentials" <<'PYSECRETS'
 import os,secrets,sys
 fd=os.open(sys.argv[1],os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
 with os.fdopen(fd,'w') as f:
-    f.write('EDU_ADMIN_PASSWORD=Edu!'+secrets.token_urlsafe(20)+'\n')
+    f.write('EDU_ADMIN_PASSWORD=admin123456\n')
     f.write('EDU_DEMO_PASSWORD=Edu!'+secrets.token_urlsafe(20)+'\n')
     f.write('EDU_TOKEN_SECRET='+secrets.token_hex(32)+'\n')
 PYSECRETS
   fi
   [[ -f "$credentials" && ! -L "$credentials" ]] || exit 1
   chmod 600 "$credentials"
+  # Update existing test deployments as well as fresh installations. Do not rotate
+  # the demo-user password or token secret when standardizing the admin login.
+  python3 - "$credentials" <<'PYADMIN'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+lines = path.read_text().splitlines()
+lines = [line for line in lines if not line.startswith('EDU_ADMIN_PASSWORD=')]
+lines.append('EDU_ADMIN_PASSWORD=admin123456')
+path.write_text('\n'.join(lines) + '\n')
+PYADMIN
+  # Share only the integration credential with Java; never load Agent signing/DB keys.
+  agent_base=${AGENT_DEPLOY_BASE_DIR:-/project/fengyucode-student-agent}
+  [[ "$agent_base" =~ ^/[a-zA-Z0-9_/-]+$ && "$agent_base" != *..* && "$agent_base" != / ]] || exit 2
+  agent_bridge_credentials="$base_dir/.pipeline/agent-bridge.env"
+  python3 - "$agent_base/.pipeline/agent.env" "$agent_bridge_credentials" <<'PYBRIDGE'
+import json
+import os
+from pathlib import Path
+import sys
+import tempfile
+source, destination = map(Path, sys.argv[1:])
+if source.is_symlink() or destination.is_symlink():
+    raise SystemExit("Agent bridge credential files must not be symbolic links")
+if source.exists():
+    values = [line.partition("=")[2] for line in source.read_text().splitlines()
+              if line.startswith("AGENT_SERVICE_API_KEY=")]
+    if len(values) != 1:
+        raise SystemExit("Agent integration key is missing or duplicated in server configuration")
+    value = values[0]
+    if value[:1] in ("'", '"') and value[-1:] == value[:1]:
+        value = value[1:-1]
+    if len(value) < 32 or any(character in value for character in "\r\n\x00"):
+        raise SystemExit("Agent integration key must contain at least 32 single-line characters")
+    # Compose double-quoted env values use dollar escaping; never interpolate secret content.
+    contents = "EDU_AGENT_SERVICE_API_KEY=" + json.dumps(value.replace("$", "$$")) + "\n"
+elif destination.exists():
+    os.chmod(destination, 0o600)
+    print("::notice::Agent source configuration is absent; keeping the existing bridge credential")
+    sys.exit(0)
+else:
+    contents = "# Agent not deployed yet; the bridge endpoint will return a configuration error.\n"
+    print("::notice::Agent configuration is absent; education remains available until Agent deployment")
+fd, temporary = tempfile.mkstemp(prefix="agent-bridge-", dir=destination.parent)
+try:
+    os.fchmod(fd, 0o600)
+    with os.fdopen(fd, "w") as stream:
+        stream.write(contents)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, destination)
+finally:
+    if os.path.exists(temporary):
+        os.unlink(temporary)
+PYBRIDGE
   printf 'IMAGE_PREFIX=%s\nIMAGE_TAG=%s\nGATEWAY_NETWORK=%s\nHTTP_PORT=%s\n' \
     "$prefix" "$tag" "$network" "$port" > "$new_dir/.env"
-  printf 'EDU_CREDENTIALS_FILE=%s\n' "$credentials" >> "$new_dir/.env"
+  printf 'EDU_CREDENTIALS_FILE=%s\nEDU_AGENT_CREDENTIALS_FILE=%s\n' \
+    "$credentials" "$agent_bridge_credentials" >> "$new_dir/.env"
   compose "$new_dir" config --quiet
   # Pull must succeed before changing any running container.
   echo "Pulling image: $prefix/web:$tag"

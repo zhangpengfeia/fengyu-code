@@ -18,11 +18,17 @@ export interface MockGameContext {
     passed: boolean
   }
 }
+export interface LiveGameContext {
+  mode: 'live'
+  requestId: string
+  game: Omit<MockGameContext['game'], 'code'> & { code?: string }
+}
+export type GameContext = MockGameContext | LiveGameContext
 export type WidgetMessage = {
   protocol: typeof WIDGET_PROTOCOL
   channelId: string
   type: 'ready' | 'context' | 'accepted' | 'error' | 'close'
-  context?: MockGameContext
+  context?: GameContext
   message?: string
   requestId?: string
   evaluationId?: string
@@ -65,6 +71,28 @@ export function isMockGameContext(value: unknown): value is MockGameContext {
     ['NONE', 'BRONZE', 'SILVER', 'GOLD'].includes(String(result.badge)) &&
     (result.passed || result.badge === 'NONE')
   )
+}
+/** Live browser context contains no identity or authoritative game scores. */
+export function isLiveGameContext(value: unknown): value is LiveGameContext {
+  if (!record(value) || value.mode !== 'live' || !uuid.test(String(value.requestId))) return false
+  if ('student' in value || 'result' in value || !record(value.game)) return false
+  const game = value.game
+  return (
+    (game.code === undefined ||
+      (typeof game.code === 'string' && /^[a-z][a-z0-9-]{0,63}$/.test(game.code))) &&
+    typeof game.name === 'string' &&
+    game.name.trim().length > 0 &&
+    game.name.length <= 100 &&
+    typeof game.volume === 'number' &&
+    Number.isInteger(game.volume) &&
+    game.volume >= 1 &&
+    game.volume <= 100 &&
+    ['ASSESSMENT', 'TRAINING'].includes(String(game.mode)) &&
+    ['NOVICE', 'SKILLED', 'MASTER'].includes(String(game.difficulty))
+  )
+}
+export function isGameContext(value: unknown): value is GameContext {
+  return isMockGameContext(value) || isLiveGameContext(value)
 }
 export function widgetOrigin(url: string, base: string): string {
   const target = new URL(url, base)

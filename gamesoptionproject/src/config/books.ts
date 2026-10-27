@@ -6,6 +6,8 @@ export interface BookGame {
   id: string
   title: string
   thumbnail?: string
+  // Only set after the corresponding Agent rule has been verified.
+  agentCode?: string
   // Configure real game URLs separately for each mode when games are available.
   entries: Partial<Record<GameMode, string>>
 }

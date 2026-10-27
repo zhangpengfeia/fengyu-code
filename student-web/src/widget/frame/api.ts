@@ -1,6 +1,6 @@
 import type { MockGameContext } from "@fengyu/agent-widget-sdk/protocol";
 import { config } from "@/shared/config";
-export interface WidgetSession {
+export interface MockWidgetSession {
   access_token: string;
   expires_in: number;
   evaluation_id: string | null;
@@ -14,10 +14,20 @@ export interface WidgetSession {
     game_code: string;
   };
 }
+export interface LiveWidgetSession {
+  access_token: string;
+  expires_in: number;
+  evaluation_id: null;
+  mock: false;
+  student: { id: string; name: string; school_id: string };
+}
+export type WidgetSession = MockWidgetSession | LiveWidgetSession;
+export { openLiveSession } from "./live-session";
+
 export async function openMockSession(
   context: MockGameContext,
   signal: AbortSignal,
-): Promise<WidgetSession> {
+): Promise<MockWidgetSession> {
   const response = await fetch(
     `${config.agentBaseUrl.replace(/\/$/, "")}/dev/mock/widget-session`,
     {

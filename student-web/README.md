@@ -115,9 +115,9 @@ student-web/
 
 ## Agent 登录桥接
 
-Agent 不接受教育平台令牌，也没有学生账号密码登录接口。教育平台需增加一个学生可调用的换票接口：校验当前学生身份后，由后端携带集成凭据请求 Agent 的 `/internal/v1/tokens`，再返回 `{access_token, expires_in}`。Mock 联调已在 Agent 的开发专用路由实现此桥接；真实教育平台仍需实现对应接口。
+Agent 不接受教育平台令牌，也没有学生账号密码登录接口。教育平台需增加一个学生可调用的换票接口：校验当前学生身份后，由后端携带集成凭据请求 Agent 的 `/internal/v1/tokens`，再返回 `{access_token, expires_in}`。Mock 联调已在 Agent 的开发专用路由实现此桥接；真实教育平台现已提供 `/biz/auth/agent-token`；星球 iframe 使用 `/play/planet/agent-session` 以游戏会话换票。
 
-将该教育平台接口路径填入 `VITE_AGENT_TOKEN_ENDPOINT`。默认留空；未接通时学伴和报告显示明确提示。此项目不猜测一个不存在的后端路径，也不会将服务集成密钥、模型密钥或 JWT 签名密钥放入前端。教育令牌仅保存在 sessionStorage，Agent 短期令牌仅保存在内存。
+将该教育平台接口路径填入 `VITE_AGENT_TOKEN_ENDPOINT`。线上镜像默认 `/biz/auth/agent-token`；未配置后端集成服务时学伴和报告显示明确提示。此项目不猜测一个不存在的后端路径，也不会将服务集成密钥、模型密钥或 JWT 签名密钥放入前端。教育令牌仅保存在 sessionStorage，Agent 短期令牌仅保存在内存。
 
 当前 SSE 发送处理状态和完整最终回答，前端实现停止等待、同请求 ID 重试、错误提示与分片解析，不模拟真实逐 Token 推送。
 
@@ -126,7 +126,7 @@ Agent 不接受教育平台令牌，也没有学生账号密码登录接口。�
 - 能力百分比、册次趋势、学习天数与荣誉汇总暂无统一数据接口。真实模式显示单局事实和可获得的统计，雷达图与荣誉墙仅在明确的设计预览中展示示例。
 - 校园榜当前后端拒绝学生访问，页面明确禁用校园榜；班级榜遵守现有角色权限。
 - 学伴昵称、头像、语音偏好保存在当前浏览器，不跨设备同步。没有头像上传、语音合成或语音识别后端，不显示虚假的试听/上传成功。
-- 站内悬浮窗位于 `src/widget/AgentWidget.vue`，与独立学伴页面复用 `features/companion/components/ChatPanel.vue`；面向星球的独立挂件位于 `../agent-widget-sdk`，模拟接入页面位于 `src/widget/frame/`。正式宿主鉴权仍需教育后端换票。
+- 站内悬浮窗位于 `src/widget/AgentWidget.vue`，与独立学伴页面复用 `features/companion/components/ChatPanel.vue`；面向星球的独立挂件位于 `../agent-widget-sdk`，模拟接入页面位于 `src/widget/frame/`。正式宿主鉴权已通过教育后端游戏会话换票接入。
 - 星球页面已复用仓库素材；真实游戏逻辑仍由现有 `/play/` 项目提供。
 
 ## 移动与桌面适配

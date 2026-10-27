@@ -2,6 +2,7 @@ package com.ruoyi.education.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ruoyi.common.exception.ServiceException;
+import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.education.domain.*;
 import com.ruoyi.education.mapper.BizMapper;
 import org.springframework.stereotype.Service;
@@ -55,6 +56,14 @@ public class GameService {
         var data=read(redis.getCacheObject("edu:game-session:"+sid));if(!code.equals(data.get("code"))) deny();return file(check(data),asset);
     }
     public void session(String code,String sid) { asset(code,sid,"index.html"); }
+    /** Server-confirmed owner of the existing, currently authorized game session. */
+    public SysUser sessionUser(String code,String sid) {
+        if(sid==null||!sid.matches("[A-Za-z0-9_-]{43}")) deny();
+        var data=read(redis.getCacheObject("edu:game-session:"+sid));
+        if(!code.equals(data.get("code"))) deny();
+        check(data);
+        return access.active(id(data.get("uid")));
+    }
     Path file(Map<String,Object> g,String asset) {
         try {
             if(asset.isBlank()) asset="index.html";

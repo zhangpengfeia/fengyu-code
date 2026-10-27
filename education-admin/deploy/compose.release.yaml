@@ -4,7 +4,9 @@ services:
   education-api:
     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/web:api-${IMAGE_TAG:?Set IMAGE_TAG}
     restart: unless-stopped
-    env_file: ${EDU_CREDENTIALS_FILE:?Set protected server credentials file}
+    env_file:
+      - ${EDU_CREDENTIALS_FILE:?Set protected server credentials file}
+      - ${EDU_AGENT_CREDENTIALS_FILE:-/dev/null}
     environment:
       SPRING_PROFILES_ACTIVE: dev
       EDU_CACHE_TYPE: memory
@@ -13,7 +15,8 @@ services:
       EDU_SECURE_GAME_COOKIE: 'true'
       EDU_GAMES_ROOT: /games
       EDU_RELEASE_ID: ${IMAGE_TAG}
-    networks: [backend]
+      EDU_AGENT_BASE_URL: http://fengyucode-student-agent-api:8088
+    networks: [backend, agent_bridge]
   fengyucode-web:
     image: ${IMAGE_PREFIX:?Set IMAGE_PREFIX}/web:${IMAGE_TAG:?Set IMAGE_TAG}
     restart: unless-stopped
@@ -31,6 +34,9 @@ services:
       start_period: 20s
 networks:
   backend:
+  agent_bridge:
+    external: true
+    name: fengyucode-agent-bridge
   gateway:
     external: true
     name: ${GATEWAY_NETWORK:-crm-ai_default}

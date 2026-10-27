@@ -5,7 +5,7 @@ COPY agent-widget-sdk/ /src/agent-widget-sdk/
 COPY student-web/package*.json ./
 RUN npm ci --no-audit --no-fund
 COPY student-web/ ./
-ARG VITE_AGENT_TOKEN_ENDPOINT=
+ARG VITE_AGENT_TOKEN_ENDPOINT=/biz/auth/agent-token
 ENV VITE_BASE_PATH=/student/ \
     VITE_EDUCATION_API_BASE=/prod-api \
     VITE_AGENT_API_BASE=/student/api \

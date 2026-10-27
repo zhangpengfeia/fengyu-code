@@ -1,23 +1,23 @@
 import {
   WIDGET_PROTOCOL,
-  isMockGameContext,
+  isGameContext,
   isWidgetMessage,
   widgetOrigin,
-  type MockGameContext,
+  type GameContext,
   type WidgetMessage,
 } from './protocol'
-export type { MockGameContext } from './protocol'
+export type { MockGameContext, LiveGameContext, GameContext } from './protocol'
 export interface WidgetOptions {
   container: HTMLElement
   url: string
-  context: MockGameContext
+  context: GameContext
   onMockRound?: () => void
   onAccepted?: (event: { requestId?: string; evaluationId?: string }) => void
 }
 /** Browser-only SDK. The host owns game data; the iframe owns chat and authentication. */
 export function createAgentWidget(options: WidgetOptions) {
   let context = options.context
-  if (!isMockGameContext(context)) throw new Error('星球传入的模拟上下文无效。')
+  if (!isGameContext(context)) throw new Error('星球传入的上下文无效。')
   const origin = widgetOrigin(options.url, window.location.href)
   const channelId = crypto.randomUUID()
   const url = new URL(options.url, window.location.href)
@@ -32,6 +32,7 @@ export function createAgentWidget(options: WidgetOptions) {
     .panel{position:absolute;right:18px;bottom:18px;width:min(460px,calc(100% - 36px));height:min(620px,calc(100% - 36px));border:1px solid #dce5ff;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 10px 50px #10244c44;pointer-events:auto;display:flex;flex-direction:column;color:#24355a;font:13px system-ui,sans-serif}.panel[hidden],.launcher[hidden]{display:none}.header{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#eef3ff;flex-shrink:0}.header strong{font-size:14px}.tag{font-size:10px;color:#a57622;background:#fff7e8;padding:4px 6px;border-radius:5px}.close{margin-left:auto;border:0;color:#64749c;background:transparent;font-size:18px;padding:4px 7px}.status{padding:7px 14px;color:#7482a0;font-size:10px;border-bottom:1px solid #edf0f8;flex-shrink:0}.frame{width:100%;flex:1;min-height:0;border:0;background:#fafbff}.round{border:0;border-top:1px solid #edf0f8;background:#fff;color:#305bff;font-size:11px;min-height:36px;flex-shrink:0}
     @media(max-height:460px){.panel{right:10px;bottom:10px;height:calc(100% - 20px);width:min(460px,calc(100% - 20px))}.header{padding:7px 12px}.launcher{right:12px;bottom:12px;padding:7px 12px}.status{padding:4px 12px}}
   </style><button class="launcher" type="button" aria-label="打开智能学伴"><span class="symbol" aria-hidden="true">✦</span>智能学伴</button><section class="panel" hidden aria-label="星球智能学伴"><header class="header"><strong>智能学伴</strong><span class="tag">模拟联调</span><button class="close" type="button" aria-label="关闭智能学伴">×</button></header><div class="status" role="status">正在等待学伴连接…</div><iframe class="frame" title="星球智能学伴应用" referrerpolicy="strict-origin-when-cross-origin" sandbox="allow-scripts allow-same-origin allow-forms"></iframe></section>`
+  shadow.querySelector<HTMLElement>('.tag')!.hidden = context.mode !== 'mock'
   const launcher = shadow.querySelector<HTMLButtonElement>('.launcher')!
   const panel = shadow.querySelector<HTMLElement>('.panel')!
   const status = shadow.querySelector<HTMLElement>('.status')!
@@ -81,7 +82,7 @@ export function createAgentWidget(options: WidgetOptions) {
       post()
     }
     if (message.type === 'accepted' && message.requestId === context.requestId) {
-      status.textContent = `已接收星球数据：第${context.game.volume}册 · ${context.game.name}`
+      status.textContent = `${context.mode === 'mock' ? '已接收星球数据' : '已连接星球'}：第${context.game.volume}册 · ${context.game.name}`
       options.onAccepted?.({ requestId: message.requestId, evaluationId: message.evaluationId })
     }
     if (message.type === 'error')
@@ -90,7 +91,7 @@ export function createAgentWidget(options: WidgetOptions) {
   }
   launcher.addEventListener('click', open)
   shadow.querySelector('.close')!.addEventListener('click', close)
-  if (options.onMockRound) {
+  if (context.mode === 'mock' && options.onMockRound) {
     const round = document.createElement('button')
     round.type = 'button'
     round.className = 'round'
@@ -103,8 +104,9 @@ export function createAgentWidget(options: WidgetOptions) {
   return {
     open,
     close,
-    updateContext(value: MockGameContext) {
-      if (!isMockGameContext(value)) throw new Error('星球传入的模拟上下文无效。')
+    updateContext(value: GameContext) {
+      if (!isGameContext(value) || value.mode !== context.mode)
+        throw new Error('星球传入的上下文无效。')
       context = value
       status.textContent = '正在传入星球上下文…'
       post()

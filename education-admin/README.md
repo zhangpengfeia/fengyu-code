@@ -36,7 +36,7 @@ education-admin/
 
 需要 JDK 17、Node.js 20.19+ 或 22。**当前开发和演示默认不需要 Redis 或 MySQL**：缓存使用单进程内存实现，业务数据使用 H2。Redis 接口及生产配置保留。未安装 Maven 时 `backend/mvnw` 可下载校验后的 Maven 3.9.9。H2 为一次性内存库，启动时按 MySQL 迁移生成的开发脚本初始化，停机即清空，不会创建或连接生产 MySQL。
 
-最快启动演示后端（内置 `admin / DemoAdmin!2026`，老师、学生、学校管理员密码均为 `DemoUser!2026`）：
+最快启动演示后端（内置 `admin / admin123456`，老师、学生、学校管理员密码均为 `DemoUser!2026`）：
 
 ```sh
 cd education-admin
@@ -101,7 +101,7 @@ cd ..
 另一终端执行：
 
 ```sh
-EDU_TEST_ADMIN_PASSWORD='DemoAdmin!2026' \
+EDU_TEST_ADMIN_PASSWORD='admin123456' \
 EDU_TEST_DEMO_PASSWORD='DemoUser!2026' \
 python3 scripts/smoke-test.py --allow-development
 ```
@@ -160,4 +160,4 @@ docker compose --env-file deploy/.env.demo -f deploy/compose.demo.yaml up -d --b
 
 main推送通过 `Education platform build and deploy` 的全部任务后，会发布到 `https://fengyucode.zhangff.cn`，复用现有生产SSH配置及Caddy路由。`demo-deployment` 只是临时验收；必须等 `publish` 和 `deploy` 成功，且HTTPS版本核对通过，才算线上生效。
 
-公网初始密码随机生成，保存在服务器 `/project/fengyucode/.pipeline/education.env`（0600），请由服务器管理员安全查看。旧星球工作流现在仅检查源码，不再发布覆盖网站。发布与回滚说明见 `docs/DEPLOYMENT.md`。
+本地与线上测试管理员统一为 `admin / admin123456`，管理端与学生端共用账号认证；学生端请选择“账号登录”。线上发布会同步管理员密码，其他演示账号密码及Token密钥保存在服务器 `/project/fengyucode/.pipeline/education.env`（0600）。旧星球工作流现在仅检查源码，不再发布覆盖网站。发布与回滚说明见 `docs/DEPLOYMENT.md`。

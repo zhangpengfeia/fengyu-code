@@ -112,7 +112,7 @@ jobs:
           tags: ${{ steps.release.outputs.prefix }}/student-web:${{ steps.release.outputs.tag }}
           build-args: |
             RELEASE_ID=${{ steps.release.outputs.tag }}
-            VITE_AGENT_TOKEN_ENDPOINT=${{ vars.AGENT_TOKEN_ENDPOINT }}
+            VITE_AGENT_TOKEN_ENDPOINT=${{ vars.AGENT_TOKEN_ENDPOINT || '/biz/auth/agent-token' }}
           cache-from: type=gha,scope=student-agent-web
           cache-to: type=gha,mode=max,scope=student-agent-web
 

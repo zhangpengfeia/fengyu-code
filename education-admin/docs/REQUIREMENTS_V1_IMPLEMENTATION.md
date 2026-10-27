@@ -57,7 +57,7 @@ npm run build
 ```sh
 ./scripts/run-demo.sh --education.dev-captcha-enabled=false --server.address=127.0.0.1
 # 另一终端，从education-admin目录执行
-EDU_TEST_ADMIN_PASSWORD='DemoAdmin!2026' EDU_TEST_DEMO_PASSWORD='DemoUser!2026' \
+EDU_TEST_ADMIN_PASSWORD='admin123456' EDU_TEST_DEMO_PASSWORD='DemoUser!2026' \
 python3 scripts/learning-smoke-test.py --allow-development
 ```
 

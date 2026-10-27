@@ -23,7 +23,7 @@
 
 旧 `.github/workflows/deploy.yml` 保留星球源码检查，停止旧镜像发布，避免覆盖教育站点。新的 `compose.release.yaml` 与本机 `compose.demo.yaml` 区分维护；前者从GHCR拉取已验证镜像，服务器不构建源码。
 
-服务器首次发布自动生成随机管理员密码、演示账号密码和Token密钥，保存在 `/project/fengyucode/.pipeline/education.env`，权限0600，不打印到流水线日志，不提交到仓库。初始用户名为 `admin`，密码由服务器管理员在控制台安全查看该文件的 `EDU_ADMIN_PASSWORD`；老师、学生使用 `EDU_DEMO_PASSWORD`。不要继续使用本机演示的固定密码登录公网环境。已有文件不会自动改写。H2仍为演示模式，后端重启后数据及已修改密码会恢复为该文件对应的初始状态。
+本地与线上测试管理员统一为 `admin / admin123456`。管理端与学生端共用教育平台认证，在学生端选择“账号登录”。线上发布会同步已有 `/project/fengyucode/.pipeline/education.env` 中的 `EDU_ADMIN_PASSWORD`；老师、学生的 `EDU_DEMO_PASSWORD` 和 Token 密钥仍随机生成并保持已有值，文件权限为0600，不打印到流水线日志。H2仍为演示模式，后端重启后数据及已修改密码会恢复为该文件对应的初始状态。首次登录的强制改密规则保留。
 
 发布先拉取全部镜像，再切换站点；检查网站与API版本一致、API初始化完成、匿名游戏403，以及真实Caddy HTTPS入口。失败自动恢复上一版并保留current指向；手动回滚：
 

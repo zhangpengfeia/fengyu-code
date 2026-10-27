@@ -33,6 +33,18 @@ class GameGatewayTest {
     @Test void sessionIsBoundToGame() {assertThrows(ServiceException.class,()->games.asset("another-game",sid,"index.html"));}
     @Test void everyAssetRechecksPermission() {assertDoesNotThrow(()->games.asset("planet",sid,"index.html"));when(access.game(any(),any())).thenReturn(false);assertThrows(ServiceException.class,()->games.asset("planet",sid,"index.html"));}
     @Test void passwordResetInvalidatesGameSession() {when(access.active(20001)).thenAnswer(invocation->{var u=new SysUser(20001L);u.setPassword("new-hash");return u;});assertThrows(ServiceException.class,()->games.asset("planet",sid,"index.html"));}
+    @Test void agentSessionRechecksParentAndPermission() {
+        assertEquals(20001L,games.sessionUser("planet",sid).getUserId());
+        when(access.game(any(),any())).thenReturn(false);
+        assertThrows(ServiceException.class,()->games.sessionUser("planet",sid));
+        when(access.game(any(),any())).thenReturn(true);
+        when(redis.hasKey("login_tokens:parent")).thenReturn(false);
+        assertThrows(ServiceException.class,()->games.sessionUser("planet",sid));
+    }
+    @Test void agentSessionCannotSelectAnotherGameOrSkipAuthentication() {
+        assertThrows(ServiceException.class,()->games.sessionUser("another-game",sid));
+        assertThrows(ServiceException.class,()->games.sessionUser("planet",null));
+    }
     @Test void parentLogoutInvalidatesGameSession() {when(redis.hasKey("login_tokens:parent")).thenReturn(false);assertThrows(ServiceException.class,()->games.asset("planet",sid,"index.html"));}
     @Test void currentMenuPermissionIsRecheckedForEveryAsset() {assertDoesNotThrow(()->games.asset("planet",sid,"index.html"));when(access.permits(any(),eq("biz:game:preview"))).thenReturn(false);assertThrows(ServiceException.class,()->games.asset("planet",sid,"index.html"));}
     @Test void traversalAndSymlinkCannotEscapeVersionRoot() throws Exception {

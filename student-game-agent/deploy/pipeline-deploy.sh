@@ -12,6 +12,20 @@ for command in docker flock curl python3; do
 done
 docker compose version >/dev/null || fail 'Docker Compose is unavailable on the server'
 docker info >/dev/null || fail 'Docker daemon is unavailable on the server'
+ensure_agent_bridge() {
+  local bridge=fengyucode-agent-bridge metadata
+  if ! docker network inspect "$bridge" >/dev/null 2>&1; then
+    # Another release may create it concurrently; validate the resulting network below.
+    docker network create --driver bridge --internal "$bridge" >/dev/null 2>&1 || \
+      docker network inspect "$bridge" >/dev/null
+  fi
+  metadata=$(docker network inspect --format '{{.Internal}} {{.Driver}}' "$bridge")
+  [[ "$metadata" == 'true bridge' ]] || {
+    echo '::error::fengyucode-agent-bridge must be an internal Docker bridge network' >&2
+    exit 1
+  }
+}
+ensure_agent_bridge
 mkdir -p "$base/.pipeline"
 exec 9>"$base/.pipeline/deploy.lock"
 flock -w 600 9
