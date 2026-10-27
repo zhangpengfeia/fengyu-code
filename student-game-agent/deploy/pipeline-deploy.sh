@@ -6,6 +6,13 @@ mode=${1:-}
 base=${2:-/project/fengyucode-student-agent}
 [[ "$mode" == deploy || "$mode" == rollback ]] || exit 2
 [[ "$base" =~ ^/[a-zA-Z0-9_/-]+$ && "$base" != *..* && "$base" != / ]] || exit 2
+if [[ "$mode" == deploy ]]; then
+  demo_responses=${AGENT_DEMO_RESPONSES:-true}
+  [[ "$demo_responses" == true || "$demo_responses" == false ]] || {
+    echo '::error::AGENT_DEMO_RESPONSES must be true or false' >&2
+    exit 2
+  }
+fi
 fail() { printf '::error::%s\n' "$1" >&2; exit 1; }
 for command in docker flock curl python3; do
   command -v "$command" >/dev/null || fail "Missing server dependency: $command"
@@ -57,9 +64,13 @@ postgres_password=$(sed -n 's/^POSTGRES_PASSWORD=//p' "$credentials")
 [[ "$postgres_password" =~ ^[a-fA-F0-9]{64,}$ ]] || { fail 'POSTGRES_PASSWORD must be a separately generated hex secret (32+ bytes).'; }
 unset postgres_password
 compose() {
-  local directory=$1
+  local directory=$1 release_demo
   shift
-  docker compose --project-name fengyucode-student-agent --env-file "$credentials" \
+  # The saved release mode wins over the caller's current shell, including rollback.
+  release_demo=$(sed -n 's/^AGENT_DEMO_RESPONSES=//p' "$directory/.env")
+  release_demo=${release_demo:-true}
+  [[ "$release_demo" == true || "$release_demo" == false ]] || fail 'Invalid saved demonstration mode'
+  AGENT_DEMO_RESPONSES="$release_demo" docker compose --project-name fengyucode-student-agent --env-file "$credentials" \
     --env-file "$directory/.env" -f "$directory/compose.yaml" "$@"
 }
 check_site() {
@@ -77,7 +88,14 @@ check_site() {
   actual=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 15 \
     --resolve fengyucode.zhangff.cn:443:127.0.0.1 \
     https://fengyucode.zhangff.cn/student/__release.txt)
-  [[ "$actual" == "$tag" ]]
+  [[ "$actual" == "$tag" ]] || return 1
+  # Older images have no smoke module; only releases declaring the mode opt in.
+  if grep -q '^AGENT_DEMO_RESPONSES=' "$directory/.env"; then
+    if ! compose "$directory" exec -T agent-api /app/.venv/bin/python -m src.demo.smoke; then
+      echo '::error::Agent demonstration response verification failed' >&2
+      return 1
+    fi
+  fi
 }
 link_release() {
   python3 - "$1" "$2" <<'PYTHON'
@@ -104,8 +122,8 @@ if [[ "$mode" == deploy ]]; then
   directory=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
   [[ "$directory" == "$base/releases/$tag/deploy" ]] || exit 2
   docker network inspect "$network" >/dev/null
-  printf 'IMAGE_PREFIX=%s\nIMAGE_TAG=%s\nGATEWAY_NETWORK=%s\nHTTP_PORT=%s\nAGENT_CREDENTIALS_FILE=%s\n' \
-    "$prefix" "$tag" "$network" "$port" "$credentials" > "$directory/.env"
+  printf 'IMAGE_PREFIX=%s\nIMAGE_TAG=%s\nGATEWAY_NETWORK=%s\nHTTP_PORT=%s\nAGENT_CREDENTIALS_FILE=%s\nAGENT_DEMO_RESPONSES=%s\n' \
+    "$prefix" "$tag" "$network" "$port" "$credentials" "$demo_responses" > "$directory/.env"
 else
   [[ -L "$base/previous" ]] || { echo 'No previous Agent release is available' >&2; exit 1; }
   directory=$(cd "$base/previous" && pwd -P)

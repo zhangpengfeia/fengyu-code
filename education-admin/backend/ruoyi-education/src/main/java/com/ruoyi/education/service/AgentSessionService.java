@@ -67,6 +67,7 @@ public class AgentSessionService {
                         || !ttl.isIntegralNumber() || ttl.asLong() < 1 || ttl.asLong() > 3600)
                     throw unavailable();
                 return Map.of("access_token", token.asText(), "expires_in", ttl.asInt(),
+                    "demo", result.path("demo").isBoolean() && result.path("demo").asBoolean(),
                     "student", Map.of("id", student.getUserId().toString(),
                         "name", student.getNickName() == null ? "同学" : student.getNickName(),
                         "school_id", student.getDeptId().toString()));

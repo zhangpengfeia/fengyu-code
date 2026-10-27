@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     environment: Literal["development", "production", "test"] = "development"
     mock_mode: bool = False
+    demo_responses: bool = False
     mock_worker_enabled: bool = True
     mock_data_path: Path = Path(__file__).resolve().parents[2] / "config/mock.json"
     database_url: str = "sqlite+aiosqlite:///./data/agent.db"
@@ -82,4 +83,6 @@ class Settings(BaseSettings):
 
     @property
     def runtime_model_name(self) -> str:
-        return "mock-local" if self.mock_mode else self.llm_model
+        if self.mock_mode:
+            return "mock-local"
+        return "authenticated-demo" if self.demo_responses else self.llm_model

@@ -32,6 +32,8 @@ class EvaluationService:
         self.resolver = resolver or PromptResolver(settings, catalog, prompts)
 
     async def run_once(self) -> bool:
+        if self.settings.demo_responses:
+            return False
         job = await self.repository.claim_job(self.settings.job_lease_seconds)
         if not job:
             return False

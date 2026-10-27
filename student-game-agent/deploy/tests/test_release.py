@@ -27,6 +27,7 @@ class ReleaseTests(unittest.TestCase):
             "PATH": f"{self.bin}:{os.environ['PATH']}",
             "TEST_BASE": str(self.base),
         }
+        self.env.pop("AGENT_DEMO_RESPONSES", None)
         self.stub("flock", "#!/usr/bin/env bash\nexit 0\n")
         self.stub(
             "docker",
@@ -44,8 +45,12 @@ if args[:2] == ['network', 'create']: (base / 'bridge-created').touch()
 if args[:2] == ['volume', 'inspect']:
     sys.exit(0 if os.environ.get('EXISTING_DB') else 1)
 if '-f' not in args: sys.exit(0)
+with (base / 'effective-demo-modes').open('a') as stream:
+    stream.write(os.environ.get('AGENT_DEMO_RESPONSES', 'missing') + '\\n')
 directory = pathlib.Path(args[args.index('-f') + 1]).parent
 values = dict(line.split('=', 1) for line in (directory / '.env').read_text().splitlines())
+if 'src.demo.smoke' in args and os.environ.get('FAIL_SMOKE_TAG') == values['IMAGE_TAG']:
+    sys.exit(8)
 if 'up' in args and 'agent-api' in args:
     if os.environ.get('FAIL_TAG') == values['IMAGE_TAG']: sys.exit(7)
     (base / 'active').write_text(values['IMAGE_TAG'])
@@ -106,6 +111,84 @@ if '__release.txt' in args[-1]:
             calls.index("180 agent-api worker student-web"),
         )
         self.assertNotIn(" down", calls)
+
+    def test_versioned_release_checks_real_demo_smoke_entrypoint(self):
+        tag, directory = self.release(1)
+        result = self.run_release(tag, directory)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "exec -T agent-api /app/.venv/bin/python -m src.demo.smoke",
+            (self.base / "calls").read_text(),
+        )
+
+    def test_demo_smoke_failure_does_not_promote_first_release(self):
+        tag, directory = self.release(1)
+        result = self.run_release(tag, directory, FAIL_SMOKE_TAG=tag)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.base / "current").exists())
+        self.assertIn("Agent demonstration response verification failed", result.stderr)
+        self.assertIn("stop agent-api worker student-web", (self.base / "calls").read_text())
+
+    def test_demo_smoke_failure_restores_old_images_without_promoting_new_release(self):
+        first_tag, old = self.release(1)
+        self.assertEqual(self.run_release(first_tag, old).returncode, 0)
+        tag, directory = self.release(2)
+        result = self.run_release(tag, directory, FAIL_SMOKE_TAG=tag)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.base / "current").resolve(), old)
+        self.assertEqual((self.base / "active").read_text(), first_tag)
+        self.assertIn("Restoring", result.stderr)
+        self.assertFalse((self.base / "previous").exists())
+
+    def test_legacy_rollback_skips_new_smoke_module(self):
+        first_tag, old = self.release(1)
+        self.assertEqual(self.run_release(first_tag, old).returncode, 0)
+        config = old / ".env"
+        config.write_text(config.read_text().replace("AGENT_DEMO_RESPONSES=true\n", ""))
+        tag, current = self.release(2)
+        self.assertEqual(self.run_release(tag, current).returncode, 0)
+        (self.base / "calls").write_text("")
+        result = subprocess.run(
+            ["bash", str(current / "pipeline-deploy.sh"), "rollback", str(self.base)],
+            env={**self.env, "FAIL_SMOKE_TAG": first_tag},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.base / "current").resolve(), old)
+        self.assertNotIn("src.demo.smoke", (self.base / "calls").read_text())
+
+    def test_demo_response_mode_is_versioned_and_can_switch_to_real_model(self):
+        tag, first = self.release(1)
+        default = self.run_release(tag, first)
+        self.assertEqual(default.returncode, 0, default.stderr)
+        self.assertIn("AGENT_DEMO_RESPONSES=true\n", (first / ".env").read_text())
+        tag, second = self.release(2)
+        real = self.run_release(tag, second, AGENT_DEMO_RESPONSES="false")
+        self.assertEqual(real.returncode, 0, real.stderr)
+        self.assertIn("AGENT_DEMO_RESPONSES=false\n", (second / ".env").read_text())
+        self.assertIn("AGENT_DEMO_RESPONSES=true\n", (first / ".env").read_text())
+        result = subprocess.run(
+            ["bash", str(second / "pipeline-deploy.sh"), "rollback", str(self.base)],
+            env={**self.env, "AGENT_DEMO_RESPONSES": "false"},
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.base / "current").resolve(), first)
+        self.assertIn("AGENT_DEMO_RESPONSES=true\n", (first / ".env").read_text())
+        self.assertEqual((self.base / "effective-demo-modes").read_text().splitlines()[-1], "true")
+
+    def test_invalid_demo_response_mode_cannot_change_containers_or_env(self):
+        for number, value in enumerate(
+            ("1", "TRUE", "yes", "false\nAGENT_MOCK_MODE=true"), start=1
+        ):
+            tag, directory = self.release(number)
+            result = self.run_release(tag, directory, AGENT_DEMO_RESPONSES=value)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn("AGENT_DEMO_RESPONSES must be true or false", result.stderr)
+            self.assertFalse((directory / ".env").exists())
+            self.assertFalse((self.base / "calls").exists())
 
     def test_private_agent_bridge_is_created_on_first_deploy(self):
         tag, directory = self.release(1)
@@ -192,6 +275,10 @@ class ConfigurationTests(unittest.TestCase):
         for name in ("agent-api", "worker", "migrate"):
             self.assertEqual(services[name]["environment"]["AGENT_ENVIRONMENT"], "production")
             self.assertEqual(services[name]["environment"]["AGENT_MOCK_MODE"], "false")
+            self.assertEqual(
+                services[name]["environment"]["AGENT_DEMO_RESPONSES"],
+                "${AGENT_DEMO_RESPONSES:-true}",
+            )
             self.assertNotIn("ports", services[name])
         self.assertNotIn("ports", services["postgres"])
         bridge = config["networks"]["agent_bridge"]

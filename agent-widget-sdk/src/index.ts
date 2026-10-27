@@ -82,6 +82,9 @@ export function createAgentWidget(options: WidgetOptions) {
       post()
     }
     if (message.type === 'accepted' && message.requestId === context.requestId) {
+      const tag = shadow.querySelector<HTMLElement>('.tag')!
+      tag.hidden = context.mode !== 'mock' && !message.demo
+      tag.textContent = context.mode === 'mock' ? '模拟联调' : '演示模式'
       status.textContent = `${context.mode === 'mock' ? '已接收星球数据' : '已连接星球'}：第${context.game.volume}册 · ${context.game.name}`
       options.onAccepted?.({ requestId: message.requestId, evaluationId: message.evaluationId })
     }

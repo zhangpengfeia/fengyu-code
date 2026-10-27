@@ -5,6 +5,7 @@ x-agent: &agent
   environment:
     AGENT_ENVIRONMENT: production
     AGENT_MOCK_MODE: 'false'
+    AGENT_DEMO_RESPONSES: ${AGENT_DEMO_RESPONSES:-true}
     AGENT_DATABASE_URL: postgresql+psycopg://agent:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/student_game_agent
   networks: [backend]
   restart: unless-stopped

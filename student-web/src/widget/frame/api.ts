@@ -19,6 +19,7 @@ export interface LiveWidgetSession {
   expires_in: number;
   evaluation_id: null;
   mock: false;
+  demo: boolean;
   student: { id: string; name: string; school_id: string };
 }
 export type WidgetSession = MockWidgetSession | LiveWidgetSession;

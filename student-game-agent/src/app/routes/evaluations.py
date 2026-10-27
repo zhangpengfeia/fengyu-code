@@ -29,6 +29,8 @@ def job_response(job: EvaluationJob) -> JobResponse:
 @router.post("/internal/v1/game-events", status_code=202, dependencies=[Depends(require_service)])
 async def game_event(body: AttemptEvent, services: Services):
     cfg = services.settings
+    if cfg.demo_responses:
+        raise AppError("DEMO_EVALUATION_DISABLED", "演示模式仅提供示例问答，暂不接收测评事件")
     if not cfg.attempt_api_url or not cfg.attempt_api_key.get_secret_value():
         raise AppError("ATTEMPT_SOURCE_NOT_CONFIGURED", "尚未配置游戏结果接口，暂不接收评价事件")
     job = await services.evaluation_repository.enqueue(

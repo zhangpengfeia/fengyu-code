@@ -47,14 +47,34 @@ test("live widget exchanges only its game cookie and discards unsupported report
   assert.deepEqual(result, {
     ...validSession,
     mock: false,
+    demo: false,
     evaluation_id: null,
   });
+  assert.equal("facts" in result, false);
+});
+
+test("demo replies retain the authenticated student without accepting mock bootstrap facts", async (t) => {
+  t.mock.method(globalThis, "fetch", async () =>
+    jsonResponse({
+      ...validSession,
+      demo: true,
+      evaluation_id: "not-a-real-report",
+      facts: { actual_steps: 36 },
+    }),
+  );
+  const result = await openLiveSession(new AbortController().signal);
+  assert.equal(result.demo, true);
+  assert.equal(result.mock, false);
+  assert.deepEqual(result.student, validSession.student);
+  assert.equal(result.evaluation_id, null);
   assert.equal("facts" in result, false);
 });
 
 test("live widget rejects mock responses and invalid server identity or expiry", async (t) => {
   const responses = [
     { ...validSession, mock: true },
+    { ...validSession, mock: true, demo: true },
+    { ...validSession, demo: "true" },
     { ...validSession, expires_in: 0 },
     { ...validSession, expires_in: "900" },
     { ...validSession, student: { ...validSession.student, id: 1 } },

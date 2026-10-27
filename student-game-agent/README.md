@@ -271,3 +271,11 @@ make check
 `uv run --locked python scripts/dev_mock.py --with-planet` 同时启动 Agent、学生应用与星球。开发专用 `/dev/mock/widget-session` 接收星球模拟事实，返回短期令牌和测评 ID；生产环境不注册此路由。详见 `../agent-widget-sdk/README.md`。
 
 正式发布路径 `/student/`、GitHub Actions 配置、服务器凭据和回退步骤见 `deploy/README.md`。
+
+## 线上已登录演示回复
+
+`AGENT_DEMO_RESPONSES=true` 可在正式部署中启用确定性的中文“演示回复”，后续接入真实模型时设为 `false`。此模式只替换本地提示词和回答提供者，不依赖 Nacos 或模型网络；继续使用真实短期 JWT、数据库和学生/学校隔离。内部换票返回 `demo: true`，`/health/ready` 返回非敏感 `demo_responses` 状态，供界面与部署检查明确标记。
+
+演示回复不代表正式游戏规则或个人能力分析。演示模式不接收新测评事件，测评 worker 暂停领取任务，不创建模拟成绩、徽章或报告。已有学生数据保留。`AGENT_MOCK_MODE` 仍必须关闭，生产环境禁止启用它；开发 bootstrap、固定示例学生和 `/dev/` 路由不会因演示回复开关而开放。
+
+部署容器中可运行 `python -m src.demo.smoke` 验证真实内部换票与演示问答链路，只使用隔离的 `deployment-smoke` 合成身份；结果仅打印固定成功/失败提示，不打印密钥、令牌或回复正文。关闭演示模式后该检查跳过问答，不调用真实模型。

@@ -20,7 +20,11 @@ async def ready(services: Services):
             revision = await session.scalar(text("SELECT version_num FROM alembic_version"))
         if revision != SCHEMA_REVISION:
             raise AppError("DATABASE_MIGRATION_REQUIRED", "数据库版本未匹配当前应用，请先执行迁移")
-        return {"status": "UP", "external_services": "CHECK_NOT_PERFORMED"}
+        return {
+            "status": "UP",
+            "external_services": "CHECK_NOT_PERFORMED",
+            "demo_responses": services.settings.demo_responses,
+        }
     except AppError:
         raise
     except Exception as exc:

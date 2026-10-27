@@ -17,8 +17,9 @@ def configure_http(app):
         response = await call_next(request)
         response.headers["X-Request-ID"] = request.state.request_id
         response.headers["Cache-Control"] = "no-store"
+        settings = request.app.state.container.settings
         response.headers["X-Data-Mode"] = (
-            "mock" if request.app.state.container.settings.mock_mode else "live"
+            "mock" if settings.mock_mode else "demo" if settings.demo_responses else "live"
         )
         return response
 

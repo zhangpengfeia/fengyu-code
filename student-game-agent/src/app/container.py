@@ -40,6 +40,11 @@ class Container:
             self.prompts = MockPromptRepository(settings, self.catalog, self.mock.data)
             self.model = MockModelGateway()
             self.attempt_source = MockAttemptSource(self.database, settings.integration_app_id)
+        elif settings.demo_responses:
+            from src.demo.providers import DemoModelGateway, DemoPromptRepository
+
+            self.prompts = DemoPromptRepository(settings, self.catalog)
+            self.model = DemoModelGateway()
         self.retriever = DisabledRetriever()
         self.prompt_resolver = PromptResolver(settings, self.catalog, self.prompts)
         self.contexts = ChatContextService(self.catalog, self.evaluation_repository)

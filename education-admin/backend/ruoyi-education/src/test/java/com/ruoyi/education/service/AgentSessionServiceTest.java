@@ -52,7 +52,7 @@ class AgentSessionServiceTest {
 
     @Test void forwardsOnlyServerConfirmedStudentAndKeepsServiceKeyPrivate() throws Exception {
         String token = "signed-student-token-" + "t".repeat(32);
-        reply(200, json.writeValueAsString(java.util.Map.of("access_token", token, "expires_in", 900)));
+        reply(200, json.writeValueAsString(java.util.Map.of("access_token", token, "expires_in", 900, "demo", true)));
         var result = service("http://agent-api:8088", key).currentSession();
         var request = ArgumentCaptor.forClass(HttpRequest.class);
         verify(http).send(request.capture(), any(HttpResponse.BodyHandler.class));
@@ -63,8 +63,17 @@ class AgentSessionServiceTest {
         assertEquals("11000", facts.path("school_id").asText());
         assertEquals(2, facts.size());
         assertEquals(token, result.get("access_token"));
+        assertEquals(true, result.get("demo"));
         assertEquals("测试同学", ((java.util.Map<?, ?>) result.get("student")).get("name"));
         assertFalse(json.writeValueAsString(result).contains(key));
+    }
+
+    @Test void demoIndicatorAcceptsOnlyExplicitBooleanFromTheAuthenticatedService() throws Exception {
+        String token = "signed-student-token-" + "t".repeat(32);
+        for (String value : new String[]{"\"true\"", "false", "null"}) {
+            reply(200, "{\"access_token\":\"" + token + "\",\"expires_in\":900,\"demo\":" + value + "}");
+            assertEquals(false, service("http://agent-api:8088", key).session(student).get("demo"));
+        }
     }
 
     @Test void teachersCannotObtainStudentAgentTokens() {

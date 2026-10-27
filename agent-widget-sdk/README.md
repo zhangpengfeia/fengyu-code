@@ -31,4 +31,4 @@ uv run --locked python scripts/dev_mock.py --with-planet --api-port 8091 --web-p
 
 真实目录可在 `BookGame.agentCode` 中绑定经过核对的 Agent 游戏代码。尚未绑定的“抢石子”等目录不会套用本地八子归位等模拟槽位映射，先使用通用学习问答。正式模式不接收浏览器模拟成绩，不创建虚构测评，也不开放模拟按钮。
 
-Java 与 Agent 仅通过专用私有 Docker 网络连接，集成密钥仅配置于服务器。正式模型和 Nacos 提示词仍需配置；缺失时聊天明确提示服务未就绪。部署细节见 `education-admin/docs/AGENT_WIDGET_DEPLOYMENT.md`。
+Java 与 Agent 仅通过专用私有 Docker 网络连接，集成密钥仅配置于服务器。线上当前按要求默认启用演示回复，并标注“演示模式”，不调用真实模型；后续配置正式模型及 Nacos 提示词，再将 `AGENT_DEMO_RESPONSES` 设为 `false` 发布即可切换。部署细节见 `education-admin/docs/AGENT_WIDGET_DEPLOYMENT.md`。

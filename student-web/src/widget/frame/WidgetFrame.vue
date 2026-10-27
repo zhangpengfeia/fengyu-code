@@ -99,6 +99,7 @@ async function connect(value: GameContext, renew = false) {
       type: "accepted",
       requestId: value.requestId,
       evaluationId: result.evaluation_id || undefined,
+      demo: result.mock ? undefined : result.demo,
     });
     // Renew using the same round ID; the backend never creates a second report.
     renewal = setTimeout(
@@ -143,6 +144,7 @@ function receive(event: MessageEvent) {
       type: "accepted",
       requestId: incoming.requestId,
       evaluationId: session.value.evaluation_id || undefined,
+      demo: session.value.mock ? undefined : session.value.demo,
     });
     return;
   }
@@ -181,6 +183,13 @@ onMounted(() => {
       post({ type: "error", message: error.value });
       throw new Error(error.value);
     }
+    session.value = result;
+    post({
+      type: "accepted",
+      requestId: selected.requestId,
+      evaluationId: result.evaluation_id || undefined,
+      demo: result.mock ? undefined : result.demo,
+    });
     return result;
   });
   window.addEventListener("message", receive);
@@ -207,6 +216,9 @@ onBeforeUnmount(() => {
       </button>
     </div>
     <template v-else-if="session && context">
+      <p v-if="!session.mock && session.demo" class="demo-notice" role="status">
+        演示模式：当前回复来自演示服务，未调用真实大模型。
+      </p>
       <details class="context-receipt">
         <summary>
           {{ session.mock ? "星球已传入模拟数据" : "当前游戏" }} ·
@@ -336,6 +348,17 @@ dd {
 .scene-tabs button.active {
   color: var(--primary);
   background: #edf2ff;
+}
+.demo-notice {
+  margin: 0;
+  padding: 9px 14px;
+  background: #fff3d6;
+  color: #85570b;
+  border-bottom: 1px solid #efd49d;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 .report-note,
 .live-note {

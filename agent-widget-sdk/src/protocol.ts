@@ -32,6 +32,7 @@ export type WidgetMessage = {
   message?: string
   requestId?: string
   evaluationId?: string
+  demo?: boolean
 }
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const record = (value: unknown): value is Record<string, unknown> =>

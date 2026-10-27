@@ -137,6 +137,7 @@ jobs:
           BASE_DIR: ${{ vars.AGENT_DEPLOY_BASE_DIR || '/project/fengyucode-student-agent' }}
           NETWORK: ${{ vars.DEPLOY_NETWORK || 'crm-ai_default' }}
           HTTP_PORT: ${{ vars.AGENT_HTTP_PORT || '18089' }}
+          DEMO_RESPONSES: ${{ vars.AGENT_DEMO_RESPONSES || 'true' }}
           IMAGE_PREFIX: ${{ needs.publish.outputs.prefix }}
           IMAGE_TAG: ${{ needs.publish.outputs.tag }}
         shell: bash
@@ -159,6 +160,7 @@ jobs:
           lookup="$DEPLOY_HOST"; if [[ "$DEPLOY_PORT" != 22 ]]; then lookup="[$DEPLOY_HOST]:$DEPLOY_PORT"; fi
           ssh-keygen -F "$lookup" -f "$ssh_dir/known_hosts" >/dev/null
           opts=(-i "$ssh_dir/key" -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o "UserKnownHostsFile=$ssh_dir/known_hosts" -o ConnectTimeout=15)
+          [[ "$DEMO_RESPONSES" == true || "$DEMO_RESPONSES" == false ]] || exit 2
           remote="$DEPLOY_USER@$DEPLOY_HOST"
           release="$BASE_DIR/releases/$IMAGE_TAG/deploy"
           incoming="$BASE_DIR/.pipeline/incoming/$IMAGE_TAG.tar.gz"
@@ -168,5 +170,5 @@ jobs:
           tar -czf "$RUNNER_TEMP/student-agent-release.tar.gz" -C "$package" compose.yaml pipeline-deploy.sh
           ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "umask 077; mkdir -p '$BASE_DIR/.pipeline/incoming' '$release'"
           scp "${opts[@]}" -P "$DEPLOY_PORT" "$RUNNER_TEMP/student-agent-release.tar.gz" "$remote:$incoming"
-          ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "tar -xzf '$incoming' -C '$release' && rm -f '$incoming' && bash '$release/pipeline-deploy.sh' deploy '$BASE_DIR' '$IMAGE_PREFIX' '$IMAGE_TAG' '$NETWORK' '$HTTP_PORT'"
+          ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "tar -xzf '$incoming' -C '$release' && rm -f '$incoming' && AGENT_DEMO_RESPONSES='$DEMO_RESPONSES' bash '$release/pipeline-deploy.sh' deploy '$BASE_DIR' '$IMAGE_PREFIX' '$IMAGE_TAG' '$NETWORK' '$HTTP_PORT'"
           printf '### Student/Agent deployed\n\nhttps://fengyucode.zhangff.cn/student/\n\nRelease: `%s`\n' "$IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"

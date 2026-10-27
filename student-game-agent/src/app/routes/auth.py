@@ -13,4 +13,5 @@ async def tokens(body: TokenRequest, services: Services):
         "access_token": issue_token(services.settings, body),
         "token_type": "bearer",
         "expires_in": services.settings.token_ttl_seconds,
+        "demo": services.settings.demo_responses,
     }

@@ -39,6 +39,7 @@ export async function openLiveSession(
     }
     if (
       data?.mock === true ||
+      (data?.demo !== undefined && typeof data.demo !== "boolean") ||
       typeof data?.access_token !== "string" ||
       data.access_token.length < 10 ||
       data.access_token.length > 8192 ||
@@ -63,6 +64,7 @@ export async function openLiveSession(
         school_id: data.student.school_id,
       },
       mock: false,
+      demo: data.demo === true,
       evaluation_id: null,
     };
   } catch (cause) {
