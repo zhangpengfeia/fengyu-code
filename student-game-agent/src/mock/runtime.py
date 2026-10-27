@@ -13,6 +13,14 @@ class MockRuntime:
         self.revoked_tokens = set()
 
     @property
+    def students(self):
+        """Primary mock student first; extra_students are additional test accounts."""
+        return [self.data["student"], *self.data.get("extra_students", [])]
+
+    def student_by_id(self, student_id):
+        return next((item for item in self.students if item["id"] == student_id), None)
+
+    @property
     def principal(self):
         return Principal(
             app_id="education-platform",

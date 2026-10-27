@@ -142,7 +142,11 @@ def main():
         print(f"\nMock API: http://127.0.0.1:{args.api_port}/docs", flush=True)
         if not args.api_only:
             print(f"学生端: http://127.0.0.1:{args.web_port}/login", flush=True)
-        print("联调账号: 学校 11000 / 学号 demo / 密码 demo123；Ctrl+C 停止。", flush=True)
+        print(
+            "联调账号: 学校 11000 / 学号 demo / 密码 demo123；"
+            "测试账号: 学号 admin / 密码 admin123456；Ctrl+C 停止。",
+            flush=True,
+        )
         while all(process.poll() is None for process in children):
             time.sleep(0.5)
     except KeyboardInterrupt:

@@ -1,6 +1,7 @@
 {
   "notice": "仅用于前后端联调，所有账号、成绩与规则均为 mock 示例，不代表真实学生或实际游戏玩法。",
   "student": {"id": "mock-student-001", "username": "demo", "password": "demo123", "name": "联调同学"},
+  "extra_students": [{"id": "mock-student-002", "username": "admin", "password": "admin123456", "name": "测试同学"}],
   "school": {"id": "11000", "name": "Mock 联调学校"},
   "class": {"id": "11001", "name": "三年级联调班"},
   "courses": [

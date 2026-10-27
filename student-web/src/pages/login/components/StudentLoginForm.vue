@@ -90,7 +90,8 @@ onMounted(() => {
     </div>
     <form v-else @submit.prevent="submit">
       <p v-if="isMock" class="notice" role="note">
-        Mock 联调账号：学校 11000，学号 demo，密码 demo123。登录将请求本地后端。
+        Mock 联调账号：学校 11000，学号 demo，密码 demo123；测试账号：学号 admin，密码
+        admin123456。登录将请求本地后端。
       </p>
       <div class="segmented">
         <button

@@ -32,7 +32,7 @@ def education_claims(request: Request, authorization: str | None = Header(defaul
             issuer="mock-education",
             options={"require": ["sub", "exp", "jti"]},
         )
-        if claims["sub"] != container.mock.data["student"]["id"]:
+        if container.mock.student_by_id(claims["sub"]) is None:
             raise ValueError("unknown student")
         if claims["jti"] in container.mock.revoked_tokens:
             raise ValueError("logged out")
@@ -117,11 +117,18 @@ async def captcha():
 @router.post("/dev/education/biz/auth/login")
 async def login(body: MockLogin, services: Services):
     data = services.mock.data
-    student = data["student"]
+    student = next(
+        (
+            item
+            for item in services.mock.students
+            if secrets.compare_digest(body.username, item["username"])
+            and secrets.compare_digest(body.password, item["password"])
+        ),
+        None,
+    )
     if (
         body.mode not in {"ACCOUNT", "STUDENT"}
-        or body.username != student["username"]
-        or not secrets.compare_digest(body.password, student["password"])
+        or student is None
         or (body.mode == "STUDENT" and body.school_id != data["school"]["id"])
     ):
         raise AppError("INVALID_CREDENTIALS", "Mock 账号、密码或学校编号不正确", 401)
@@ -141,14 +148,14 @@ async def login(body: MockLogin, services: Services):
     return envelope({"token": token, "mock": True})
 
 
-@router.get("/dev/education/biz/auth/me", dependencies=[Depends(education_claims)])
-async def me(services: Services):
-    data = services.mock.data
+@router.get("/dev/education/biz/auth/me")
+async def me(services: Services, claims: Annotated[dict, Depends(education_claims)]):
+    student = services.mock.student_by_id(claims["sub"])
     return envelope(
         {
-            "user_id": data["student"]["id"],
-            "name": data["student"]["name"],
-            "school_id": data["school"]["id"],
+            "user_id": student["id"],
+            "name": student["name"],
+            "school_id": services.mock.data["school"]["id"],
             "must_change_pwd": False,
             "phone_verified": False,
         }
@@ -172,12 +179,12 @@ async def options(services: Services):
     )
 
 
-@router.post("/dev/education/biz/auth/agent-token", dependencies=[Depends(education_claims)])
-async def agent_token(services: Services):
-    data = services.mock.data
+@router.post("/dev/education/biz/auth/agent-token")
+async def agent_token(services: Services, claims: Annotated[dict, Depends(education_claims)]):
+    student = services.mock.student_by_id(claims["sub"])
     token = issue_token(
         services.settings,
-        TokenRequest(student_id=data["student"]["id"], school_id=data["school"]["id"]),
+        TokenRequest(student_id=student["id"], school_id=services.mock.data["school"]["id"]),
     )
     return envelope({"access_token": token, "expires_in": services.settings.token_ttl_seconds})
 

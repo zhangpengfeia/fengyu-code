@@ -42,7 +42,7 @@ student-game-agent/
 uv run --locked python scripts/dev_mock.py --web-port 5176
 ```
 
-- 学生端：<http://127.0.0.1:5176/login>；学校编号 `11000`，学号 `demo`，密码 `demo123`。
+- 学生端：<http://127.0.0.1:5176/login>；学校编号 `11000`，学号 `demo`，密码 `demo123`；测试账号：学号 `admin`，密码 `admin123456`（独立学生身份，无初始报告）。
 - API 文档：<http://127.0.0.1:8088/docs>。前端真实发送 HTTP/SSE 请求，经 Vite 代理进入本后端。
 - 启动器自动迁移独立的 `data/mock/agent.db`，生成本地随机密钥并保存在权限为 0600 的 `data/mock/keys.json`；不会覆盖真实 `.env` 或真实业务数据库。目录已忽略提交。
 - 后端加载 `config/mock.json` 中的学校、学生、课程、榜单、两条初始报告和本局指标。Mock 模型与本地规则替身不请求外部模型、Nacos 或游戏数据接口。

@@ -26,6 +26,16 @@ assert.equal(me.data.name, "联调同学");
 const options = await request("/education-api/biz/options", { headers: education });
 assert.equal(options.data.classes.length, 1);
 results.push("真实前端代理 → Mock 登录与学生资料");
+const adminLogin = await request("/education-api/biz/auth/login", {
+  method: "POST", body: JSON.stringify({ mode: "STUDENT", username: "admin", password: "admin123456", school_id: "11000" }),
+});
+const adminEducation = { Authorization: `Bearer ${adminLogin.data.token}` };
+const adminMe = await request("/education-api/biz/auth/me", { headers: adminEducation });
+assert.equal(adminMe.data.name, "测试同学");
+const adminExchange = await request("/education-api/biz/auth/agent-token", { method: "POST", headers: adminEducation });
+const adminReports = await request("/agent-api/api/v1/evaluations", { headers: { Authorization: `Bearer ${adminExchange.data.access_token}` } });
+assert.equal(adminReports.length, 0);
+results.push("测试账号 admin 登录、换票并保持数据隔离");
 const courses = await request("/education-api/biz/catalog/courseware", { headers: education });
 assert(courses.rows.length >= 2);
 const course = await request(`/education-api/biz/catalog/courseware/${courses.rows[0].courseware_id}`, { headers: education });

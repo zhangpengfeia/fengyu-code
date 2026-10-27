@@ -42,10 +42,10 @@ async def mock_client(tmp_path):
             yield client, container
 
 
-async def login(client):
+async def login(client, username="demo", password="demo123", mode="STUDENT"):
     response = await client.post(
         "/dev/education/biz/auth/login",
-        json={"mode": "STUDENT", "username": "demo", "password": "demo123", "school_id": "11000"},
+        json={"mode": mode, "username": username, "password": password, "school_id": "11000"},
     )
     assert response.status_code == 200
     edu = {"Authorization": "Bearer " + response.json()["data"]["token"]}
@@ -110,6 +110,33 @@ def test_mock_login_chat_report_and_game_end_use_real_backend_flow(tmp_path):
             assert (
                 await client.post("/dev/education/biz/auth/agent-token", headers=edu)
             ).status_code == 401
+
+    asyncio.run(scenario())
+
+
+def test_mock_admin_test_student_account_logs_in_and_stays_isolated(tmp_path):
+    async def scenario():
+        async with mock_client(tmp_path) as (client, _container):
+            wrong = await client.post(
+                "/dev/education/biz/auth/login",
+                json={"mode": "ACCOUNT", "username": "admin", "password": "demo123"},
+            )
+            assert wrong.status_code == 401
+            edu, agent = await login(client, "admin", "admin123456", mode="ACCOUNT")
+            profile = (await client.get("/dev/education/biz/auth/me", headers=edu)).json()["data"]
+            assert profile["user_id"] == "mock-student-002"
+            assert profile["name"] == "测试同学"
+            assert (await client.get("/api/v1/evaluations", headers=agent)).json() == []
+            chat = await client.post(
+                "/api/v1/chat", headers=agent, json={"request_id": str(uuid4()), "question": "你好"}
+            )
+            assert chat.status_code == 200
+            assert chat.headers["x-data-mode"] == "mock"
+            demo_edu, demo_agent = await login(client)
+            assert (await client.get("/dev/education/biz/auth/me", headers=demo_edu)).json()[
+                "data"
+            ]["user_id"] == "mock-student-001"
+            assert len((await client.get("/api/v1/evaluations", headers=demo_agent)).json()) == 2
 
     asyncio.run(scenario())
 
