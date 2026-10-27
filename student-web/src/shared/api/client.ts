@@ -80,6 +80,10 @@ async function request<T>(
   }
 }
 
+// Login and captcha must remain usable when a previous session needs a password change.
+export const educationPublicRequest = <T>(options: AxiosRequestConfig): Promise<T> =>
+  request<T>(config.educationBaseUrl, options, "");
+
 export const educationRequest = <T>(options: AxiosRequestConfig): Promise<T> =>
   request<T>(config.educationBaseUrl, options, educationSession.getToken());
 

@@ -31,7 +31,8 @@ public class EducationBootstrap implements ApplicationRunner {
         if(users.selectUserById(1L)==null) {
             String password=env.getProperty("education.bootstrap-password");
             AccountService.password(password);
-            user(1,"admin","系统管理员",100,1,password,true,null);
+            // Disposable test environments keep the agreed admin login usable after restart.
+            user(1,"admin","系统管理员",100,1,password,!env.matchesProfiles("dev"),null);
         }
         if(!env.matchesProfiles("dev")||env.getProperty("education.demo-password","").isBlank())return;
         String password=env.getProperty("education.demo-password");AccountService.password(password);

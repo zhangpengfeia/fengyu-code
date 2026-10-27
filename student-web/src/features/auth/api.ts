@@ -1,10 +1,10 @@
-import { educationRequest } from "@/shared/api/client";
+import { educationRequest, educationPublicRequest } from "@/shared/api/client";
 import type { LoginInput, Captcha, StudentUser } from "./types";
 
 export const getCaptcha = () =>
-  educationRequest<Captcha>({ url: "/captchaImage" });
+  educationPublicRequest<Captcha>({ url: "/captchaImage" });
 export const signIn = (data: LoginInput) =>
-  educationRequest<{ token: string }>({
+  educationPublicRequest<{ token: string }>({
     url: "/biz/auth/login",
     method: "POST",
     data,
