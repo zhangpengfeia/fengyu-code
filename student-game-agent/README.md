@@ -270,4 +270,4 @@ make check
 
 `uv run --locked python scripts/dev_mock.py --with-planet` 同时启动 Agent、学生应用与星球。开发专用 `/dev/mock/widget-session` 接收星球模拟事实，返回短期令牌和测评 ID；生产环境不注册此路由。详见 `../agent-widget-sdk/README.md`。
 
-正式发布路径 `/education/agent/`、GitHub Actions 配置、服务器凭据和回退步骤见 `deploy/README.md`。
+正式发布路径 `/student/`、GitHub Actions 配置、服务器凭据和回退步骤见 `deploy/README.md`。

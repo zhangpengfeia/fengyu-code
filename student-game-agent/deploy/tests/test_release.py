@@ -151,7 +151,7 @@ class ConfigurationTests(unittest.TestCase):
         self.assertTrue(services["student-web"]["ports"][0].startswith("127.0.0.1:"))
         nginx = (ROOT / "student-web/deploy/nginx.agent.conf").read_text()
         self.assertIn("(internal|dev)", nginx)
-        self.assertIn("/education/agent/index.html", nginx)
+        self.assertIn("/student/index.html", nginx)
         self.assertIn("proxy_buffering off", nginx)
 
 

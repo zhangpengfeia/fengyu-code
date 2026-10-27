@@ -44,9 +44,9 @@ jobs:
       - name: Student typecheck, protocol tests, and production build
         working-directory: student-web
         env:
-          VITE_BASE_PATH: /education/agent/
+          VITE_BASE_PATH: /student/
           VITE_EDUCATION_API_BASE: /prod-api
-          VITE_AGENT_API_BASE: /education/agent/api
+          VITE_AGENT_API_BASE: /student/api
         run: |
           npm ci
           npm test
@@ -122,7 +122,7 @@ jobs:
     timeout-minutes: 15
     environment:
       name: production
-      url: https://fengyucode.zhangff.cn/education/agent/
+      url: https://fengyucode.zhangff.cn/student/
     steps:
       - uses: actions/checkout@v6
         with:
@@ -169,4 +169,4 @@ jobs:
           ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "umask 077; mkdir -p '$BASE_DIR/.pipeline/incoming' '$release'"
           scp "${opts[@]}" -P "$DEPLOY_PORT" "$RUNNER_TEMP/student-agent-release.tar.gz" "$remote:$incoming"
           ssh "${opts[@]}" -p "$DEPLOY_PORT" "$remote" "tar -xzf '$incoming' -C '$release' && rm -f '$incoming' && bash '$release/pipeline-deploy.sh' deploy '$BASE_DIR' '$IMAGE_PREFIX' '$IMAGE_TAG' '$NETWORK' '$HTTP_PORT'"
-          printf '### Student/Agent deployed\n\nhttps://fengyucode.zhangff.cn/education/agent/\n\nRelease: `%s`\n' "$IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"
+          printf '### Student/Agent deployed\n\nhttps://fengyucode.zhangff.cn/student/\n\nRelease: `%s`\n' "$IMAGE_TAG" >> "$GITHUB_STEP_SUMMARY"

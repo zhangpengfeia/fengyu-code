@@ -2,7 +2,7 @@
 
 流水线为 `.github/workflows/student-agent.yml`：拉取请求执行测试与构建；推送 `main` 或手动运行时，发布两个不可变版本镜像并使用已有 SSH 配置部署。
 
-访问路径配置为 `https://fengyucode.zhangff.cn/education/agent/`。学生页面、History 路由和静态文件均带此前缀；Agent 的浏览器接口为 `/education/agent/api/`。教育平台接口继续走 `/prod-api`。内部换票与开发模拟接口在学生网关返回 404；SSE 禁用代理缓冲。
+访问路径配置为 `https://fengyucode.zhangff.cn/student/`。学生页面、History 路由和静态文件均带此前缀；Agent 的浏览器接口为 `/student/api/`。教育平台接口继续走 `/prod-api`。内部换票与开发模拟接口在学生网关返回 404；SSE 禁用代理缓冲。
 
 ## 首次配置
 

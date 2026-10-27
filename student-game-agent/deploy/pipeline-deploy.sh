@@ -32,16 +32,16 @@ check_site() {
   port=$(sed -n 's/^HTTP_PORT=//p' "$directory/.env")
   tag=$(sed -n 's/^IMAGE_TAG=//p' "$directory/.env")
   curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/healthz" >/dev/null
-  actual=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/education/agent/__release.txt")
+  actual=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 10 "http://127.0.0.1:$port/student/__release.txt")
   [[ "$actual" == "$tag" ]] || return 1
   for private in dev/mock/widget-session internal/v1/tokens; do
-    code=$(curl -sS --noproxy '*' --max-time 10 -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$port/education/agent/api/$private")
+    code=$(curl -sS --noproxy '*' --max-time 10 -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:$port/student/api/$private")
     [[ "$code" == 404 ]] || return 1
   done
   # This also verifies that the existing education gateway routes the new prefix.
   actual=$(curl -fsS --noproxy '*' --connect-timeout 5 --max-time 15 \
     --resolve fengyucode.zhangff.cn:443:127.0.0.1 \
-    https://fengyucode.zhangff.cn/education/agent/__release.txt)
+    https://fengyucode.zhangff.cn/student/__release.txt)
   [[ "$actual" == "$tag" ]]
 }
 link_release() {
@@ -104,4 +104,4 @@ if [[ -n "$old" && "$old" != "$directory" ]]; then
 fi
 link_release "$directory" "$base/current"
 trap - EXIT
-printf 'Student/Agent release verified at https://fengyucode.zhangff.cn/education/agent/\n'
+printf 'Student/Agent release verified at https://fengyucode.zhangff.cn/student/\n'

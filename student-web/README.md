@@ -141,4 +141,4 @@ Agent 不接受教育平台令牌，也没有学生账号密码登录接口。�
 
 ## 星球嵌入与发布流水线
 
-星球模拟接入和启动步骤见 `../agent-widget-sdk/README.md`。独立 iframe 路由为 `/widget`，不加载站点导航。发布入口已配置为 `/education/agent/`，构建与网关见 `deploy/Dockerfile`、`deploy/nginx.agent.conf`；服务器准备、身份桥接和发布/回退见 `../student-game-agent/deploy/README.md`。
+星球模拟接入和启动步骤见 `../agent-widget-sdk/README.md`。独立 iframe 路由为 `/widget`，不加载站点导航。发布入口已配置为 `/student/`，构建与网关见 `deploy/Dockerfile`、`deploy/nginx.agent.conf`；服务器准备、身份桥接和发布/回退见 `../student-game-agent/deploy/README.md`。
